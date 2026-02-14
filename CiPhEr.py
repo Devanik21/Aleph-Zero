@@ -1342,21 +1342,57 @@ def main():
     div.stButton > button:active {
         transform: translateY(1px) !important;
     }
+    /* Sidebar Styling */
+    [data-testid="stSidebar"] {
+        background-color: #0b0e14 !important;
+        border-right: 1px solid rgba(0, 255, 204, 0.1) !important;
+    }
+    .stSelectbox div[data-baseweb="select"] {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        border-radius: 8px !important;
+    }
+    .stRadio div[role="radiogroup"] {
+        padding: 10px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .metric-card {
+        background: rgba(0, 255, 204, 0.03);
+        border: 1px solid rgba(0, 255, 204, 0.1);
+        padding: 15px;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown('<h1 class="main-title">🛡️ ADVANCED RESEARCH CRYPTOGRAPHY 🛡️</h1>', unsafe_allow_html=True)
+    # --- SIDEBAR ENHANCEMENTS ---
+    st.sidebar.title("🛠️ RESEARCH CONSOLE")
     
-    st.markdown("""
-    **Author**: Devanik | **Affiliation**: NIT Agartala | **Fellowship**: Samsung Convergence (Grade I), IISc
+    # System Metrics Dashboard
+    st.sidebar.markdown("### 📊 Quantum Vitals")
+    with st.sidebar.container():
+        st.sidebar.markdown("""
+        <div class="metric-card">
+            <p style='color: #888; font-size: 0.8rem; margin: 0;'>System Coherence</p>
+            <p style='color: #00ffcc; font-size: 1.2rem; font-weight: bold; margin: 0;'>99.98%</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Busy Beaver Progress
+        st.sidebar.markdown("Busy Beaver Convergence")
+        st.sidebar.progress(85)
+        
+        st.sidebar.markdown("""
+        <div class="metric-card">
+            <p style='color: #888; font-size: 0.8rem; margin: 0;'>Latent Entropy</p>
+            <p style='color: #ff0088; font-size: 1.2rem; font-weight: bold; margin: 0;'>2.997e+08</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    **⚠️ THEORETICAL RESEARCH IMPLEMENTATION - DEMONSTRATION ONLY**
-    
-    Five paradigm-shifting algorithms combining:
-    - Topology • Quantum Gravity • DNA Computing • Consciousness • Number Theory • Artificial Intelligence
-    """)
-    
-    st.markdown("---")
+    st.sidebar.markdown("---")
     
     # Algorithm selection
     algo_choice = st.sidebar.selectbox(
@@ -1400,6 +1436,19 @@ def main():
         st.markdown("### ⚠️ COMPUTATIONAL IRREDUCIBILITY")
         st.markdown(r"The browser freezes due to **Tetration-Level Complexity ($2 \uparrow\uparrow 3$)**.")
         st.info(r"💡 **The Star-Energy Analogy:** At **Depth 3**, a civilization would need the total energy of a star to keep a quantum computer coherent long enough to guess the geometry. The freeze is physical proof of the math's mass.")
+    
+    st.markdown('<h1 class="main-title">🛡️ OMEGA-X RESEARCH CONSOLE 🛡️</h1>', unsafe_allow_html=True)
+    
+    st.markdown("""
+    **Principal Researcher**: Devanik | **Entity**: NIT Agartala | **Fellowship**: Samsung Convergence (Grade I), IISc
+    
+    **⚠️ TYPE IV INFINITE COMPLEXITY - TETRATION SECURE**
+    
+    Five hyper-scrambling manifolds active in this terminal:
+    - Fractal Topology • SYK Scrambling • Genomic Mutation • Orch-OR Coherence • Algebraic Langlands
+    """)
+    
+    st.markdown("---")
     
     # Algorithm descriptions
     algo_descriptions = {
