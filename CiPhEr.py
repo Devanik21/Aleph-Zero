@@ -26,6 +26,15 @@ import networkx as nx
 from scipy.linalg import expm
 import time
 
+def complex_to_list(arr):
+    """Convert complex numpy array to JSON-serializable list [real, imag]"""
+    return np.stack([arr.real, arr.imag], axis=-1).tolist()
+
+def list_to_complex(lst):
+    """Convert [real, imag] list back to complex numpy array"""
+    arr = np.array(lst)
+    return arr[..., 0] + 1j * arr[..., 1]
+
 # ============================================================================
 # ALGORITHM 1: TOPOLOGICAL ENTANGLEMENT ENCRYPTION (TEE)
 # ============================================================================
@@ -166,7 +175,7 @@ class TopologicalCipher:
         
         # Encode final ciphertext
         ciphertext = {
-            'encoded_state': [s.tolist() for s in encoded_state],
+            'encoded_state': [complex_to_list(s) for s in encoded_state],
             'topology_signature': {
                 'real': float(invariant.real),
                 'imag': float(invariant.imag)
@@ -200,7 +209,7 @@ class TopologicalCipher:
             raise ValueError("Topological signature mismatch - authentication failed")
         
         # Decode quantum states
-        encoded_states = [np.array(s, dtype=complex) for s in ciphertext['encoded_state']]
+        encoded_states = [list_to_complex(s) for s in ciphertext['encoded_state']]
         
         plaintext_bytes = []
         for state in encoded_states:
@@ -366,7 +375,7 @@ class GravitationalScrambler:
             boundary_data.append(chunk)
         
         ciphertext = {
-            'scrambled_state': [s.tolist() for s in boundary_data],
+            'scrambled_state': [complex_to_list(s) for s in boundary_data],
             'scrambling_time': scrambling_time,
             'otoc': {'real': float(otoc.real), 'imag': float(otoc.imag)},
             'complexity': complexity,
@@ -386,7 +395,7 @@ class GravitationalScrambler:
         scrambling_time = ciphertext['scrambling_time']
         
         # Reconstruct scrambled state from boundary data
-        boundary_chunks = [np.array(s, dtype=complex) for s in ciphertext['scrambled_state']]
+        boundary_chunks = [list_to_complex(s) for s in ciphertext['scrambled_state']]
         scrambled_state = np.concatenate(boundary_chunks)[:ciphertext['dimension']]
         scrambled_state = scrambled_state / np.linalg.norm(scrambled_state)
         
@@ -428,7 +437,7 @@ def visualize_topological_state(cipher_state: dict):
     # Plot 1: State amplitudes
     ax1 = fig.add_subplot(131)
     if cipher_state['encoded_state']:
-        state = np.array(cipher_state['encoded_state'][0])
+        state = list_to_complex(cipher_state['encoded_state'][0])
         ax1.bar(range(len(state[:50])), np.abs(state[:50]), color='#00ff88', alpha=0.7)
         ax1.set_xlabel('Basis State')
         ax1.set_ylabel('Amplitude')
@@ -468,7 +477,7 @@ def visualize_scrambling(cipher_state: dict):
     # Plot 1: Scrambled state
     ax1 = fig.add_subplot(131)
     if cipher_state['scrambled_state']:
-        states = [np.array(s) for s in cipher_state['scrambled_state']]
+        states = [list_to_complex(s) for s in cipher_state['scrambled_state']]
         combined = np.concatenate(states)
         ax1.plot(np.abs(combined[:100]), color='#00ff88', linewidth=2)
         ax1.set_xlabel('State Index')
