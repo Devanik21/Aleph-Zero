@@ -1356,38 +1356,38 @@ def main():
     algo_descriptions = {
         "1️⃣": {
             "name": "TNHC",
-            "title": "🔗 Topological-Neural Hybrid Cipher",
-            "theory": "Braid group representations + Neural network optimization",
-            "security": "Topological invariants (Jones polynomial) + AI-discovered optimal braiding sequences",
-            "basis": "Yang-Baxter equations, Quantum error correction, Adversarial training"
+            "title": "🔗 Fractal-Topological Neural Hybrid (TNHC-Ω)",
+            "theory": "High-depth Braid Group representations + Sequential Fractal-Recursive Embedding.",
+            "security": "Topological Invariants (Jones Polynomial) embedded within a 2 ↑↑ D Tetration-depth Latent Manifold.",
+            "basis": "Yang-Baxter Equations, Busy Beaver entropy seed, Recursive manifold curvature."
         },
         "2️⃣": {
             "name": "GASS",
-            "title": "🌌 Gravitational-AI Scrambling System",
-            "theory": "SYK model chaos + Deep reinforcement learning",
-            "security": "Fast scrambling (saturates chaos bound) + RL-optimized Hamiltonian parameters",
-            "basis": "Holographic duality, Lyapunov exponents, Q-learning policy"
+            "title": "🌌 Holographic Gravitational Scrambler (GASS-Ω)",
+            "theory": "SYK Model Chaos + Deep RL-optimized Fast Scrambling + Fractal Latent Drift.",
+            "security": "Bound of Chaos (saturated) multiplied by the recursive volume of nested infinite manifolds.",
+            "basis": "AdS/CFT Duality, Lyapunov Exponents, Non-computable Busy Beaver noise."
         },
         "3️⃣": {
             "name": "DNC",
-            "title": "🧬 DNA-Neural Cryptography",
-            "theory": "DNA computing parallelism + Transformer neural networks",
-            "security": "Biological entropy + 10²³ parallel operations + Self-attention mechanisms",
-            "basis": "Codon mapping, GC content optimization, Multi-head attention"
+            "title": "🧬 Genomic-Fractal Neural Cipher (DNC-Ω)",
+            "theory": "Synthetic DNA Parallelism + Transformer Attention embedded in Recursive Latent Space.",
+            "security": "Biological Entropy (SHA3-Genome) + 10²³ Parallel States mapped to a Tetration-depth manifold.",
+            "basis": "Epigenetic Shift (Omega-X Mutation), Multi-head attention, Infinite dimensional projection."
         },
         "4️⃣": {
             "name": "CQE",
-            "title": "🧠 Conscious-Quantum Encryption",
-            "theory": "Penrose Orch-OR (orchestrated objective reduction) + Neural ODEs",
-            "security": "Non-computable consciousness (Gödel-incomputable) + Quantum coherence in microtubules",
-            "basis": "Objective reduction threshold, Fröhlich coherence, Neural ODE evolution"
+            "title": "🧠 Conscious-Quantum Recursive Encryption (CQE-Ω)",
+            "theory": "Penrose Orch-OR (orchestrated objective reduction) + Fractal Embedding of Coherent Microtubule States.",
+            "security": "Gödel-Incomputable Consciousness primitives + Non-linear recursive 'Manifold Twisting'.",
+            "basis": "Fröhlich Coherence, Neural ODE evolution, Ackermann-depth latent drift."
         },
         "5️⃣": {
             "name": "LDLC",
-            "title": "🔢 Langlands-Deep Learning Cipher",
-            "theory": "Geometric Langlands correspondence + Graph neural networks",
-            "security": "Automorphic forms + High-dimensional representation spaces + GNN message passing",
-            "basis": "Galois representations, L-functions, Graph neural networks"
+            "title": "🔢 Recursive Langlands-GNN Cipher (LDLC-Ω)",
+            "theory": "Geometric Langlands Correspondence + Graph Neural Networks + Recursive Manifold Mapping.",
+            "security": "Automorphic L-Functions whose zeros are protected by a Tetration-depth Fractal Manifold.",
+            "basis": "Galois Representations, GNN message passing, Uncomputable Chaos injection (BB-16)."
         }
     }
     
