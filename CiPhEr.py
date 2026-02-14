@@ -3,7 +3,6 @@ ADVANCED MATHEMATICAL CRYPTOGRAPHIC ALGORITHMS
 ===============================================
 Author: Devanik
 Affiliation: B.Tech ECE '26, NIT Agartala
-Fellowship: Samsung Convergence Software Fellowship (Grade I), IISc
 
 RESEARCH FRAMEWORKS:
 1. Topological-Neural Hybrid Cipher (TNHC)
@@ -257,50 +256,42 @@ class GravitationalAIScrambler:
         data_array = np.frombuffer(plaintext, dtype=np.uint8)
         dim = 2 ** (self.N // 2)
         
-        # Initialize state
-        initial_state = np.zeros(dim, dtype=complex)
-        for idx, byte in enumerate(data_array):
-            initial_state[int(byte) % dim] += 1.0
-        initial_state = initial_state / (np.linalg.norm(initial_state) + 1e-10)
-        
-        # RL selects optimal scrambling strategy
-        state_hash = hash(initial_state.tobytes()[:100]) % 10000
-        action = self._rl_select_action(state_hash)
-        
-        # Apply gravitational scrambling
-        adjusted_time = scrambling_time * (1 + action * 0.1)
+        # Apply scrambling sequentially to each byte to preserve order
+        scrambled_states = []
         U_scramble = expm(-1j * self.hamiltonian * adjusted_time)
-        scrambled_state = U_scramble @ initial_state
         
-        # Compute chaos indicators
+        for byte in data_array:
+            init_state = np.zeros(dim, dtype=complex)
+            init_state[int(byte) % dim] = 1.0
+            scrambled_states.append(U_scramble @ init_state)
+        
+        # Compute chaos indicators (using first state)
         lyapunov = self._compute_lyapunov_exponent(adjusted_time)
         
         return {
             'algorithm': 'GASS',
-            'scrambled_state': complex_to_list(scrambled_state),
+            'scrambled_states': [complex_to_list(s) for s in scrambled_states],
             'scrambling_time': adjusted_time,
             'lyapunov_exponent': lyapunov,
             'rl_action': action,
             'original_length': len(plaintext),
+            'dimension': dim,
             'encryption_time': time.time() - start_time
         }
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
         """Reverse gravitational scrambling"""
-        scrambled_state = list_to_complex(ciphertext['scrambled_state'])
+        scrambled_states = [list_to_complex(s) for s in ciphertext['scrambled_states']]
         scrambling_time = ciphertext['scrambling_time']
         
         # Inverse time evolution
         U_unscramble = expm(1j * self.hamiltonian * scrambling_time)
-        unscrambled_state = U_unscramble @ scrambled_state
-        
-        # Decode
-        probabilities = np.abs(unscrambled_state) ** 2
-        sorted_indices = np.argsort(probabilities)[::-1]
-        
         decrypted_bytes = []
-        for idx in sorted_indices[:ciphertext['original_length']]:
-            decrypted_bytes.append(idx % 256)
+        
+        for state in scrambled_states:
+            unscrambled = U_unscramble @ state
+            byte_val = np.argmax(np.abs(unscrambled))
+            decrypted_bytes.append(int(byte_val) % 256)
         
         return bytes(decrypted_bytes)
 
@@ -685,41 +676,43 @@ class LanglandsDeepCipher:
         """Langlands-based encryption"""
         start_time = time.time()
         
-        # Create automorphic form
-        L_function = self._create_automorphic_form(plaintext)
+        # Process bytes in chunks to maintain Galois representations for each
+        data_array = np.frombuffer(plaintext, dtype=np.uint8)
+        representations = []
+        l_functions = []
         
-        # Map to Galois representation
-        galois_rep = self._galois_representation(plaintext)
-        
-        # Apply GNN to navigate high-dimensional space
-        graph_embedding = self._graph_message_passing(galois_rep)
-        
-        # Compute L-function zeros (security indicator)
-        zeros_estimate = len([z for z in L_function if abs(z) < 0.1])
+        for val in data_array:
+            # Single-byte Galois representation
+            rho = np.zeros((4, 4), dtype=complex)
+            v = int(val) % self.prime
+            rho[0, 0] = v + 1j * self.galois_field['frobenius'](v)
+            
+            # Message passing on representation
+            embedding = self._graph_message_passing(rho)
+            representations.append(complex_to_list(embedding))
+            
+            # Simple L-function for the value
+            l_val = v / (1.0 ** (0.5 + 1j))
+            l_functions.append(complex_to_list(l_val))
         
         return {
             'algorithm': 'LDLC',
-            'L_function': complex_to_list(L_function),
-            'galois_representation': complex_to_list(galois_rep),
-            'graph_embedding': complex_to_list(graph_embedding),
+            'representations': representations,
+            'l_functions': l_functions,
             'prime': self.prime,
-            'zeros_count': zeros_estimate,
             'original_length': len(plaintext),
             'encryption_time': time.time() - start_time
         }
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
         """Reverse Langlands correspondence"""
-        galois_rep = list_to_complex(ciphertext['galois_representation'])
+        representations = [list_to_complex(r) for r in ciphertext['representations']]
         
-        # Extract data from Galois representation
         decrypted_bytes = []
-        flat_rep = galois_rep.flatten()
-        
-        for i in range(ciphertext['original_length']):
-            if i < len(flat_rep):
-                byte_val = int(flat_rep[i].real) % 256
-                decrypted_bytes.append(byte_val)
+        for rep in representations:
+            # Extract val from first element of diagonal
+            val = int(rep[0, 0].real) % 256
+            decrypted_bytes.append(val)
         
         return bytes(decrypted_bytes)
 
@@ -765,8 +758,9 @@ def create_visualization(algo_name: str, ciphertext: dict):
     elif algo_name == 'GASS':
         # Scrambling visualization
         ax1 = fig.add_subplot(131)
-        state = list_to_complex(ciphertext['scrambled_state'])
-        ax1.plot(np.abs(state[:100]), color='#00ff88', linewidth=2)
+        if ciphertext['scrambled_states']:
+            state = list_to_complex(ciphertext['scrambled_states'][0])
+            ax1.plot(np.abs(state[:100]), color='#00ff88', linewidth=2)
         ax1.set_xlabel('State Index')
         ax1.set_ylabel('Amplitude')
         ax1.set_title('Scrambled Quantum State')
@@ -855,17 +849,19 @@ def create_visualization(algo_name: str, ciphertext: dict):
     elif algo_name == 'LDLC':
         # L-function
         ax1 = fig.add_subplot(131)
-        L_func = list_to_complex(ciphertext['L_function'])
-        ax1.plot(L_func.real[:50], L_func.imag[:50], 'o-', color='#00ff88')
+        if 'l_functions' in ciphertext and ciphertext['l_functions']:
+            L_func = list_to_complex(ciphertext['l_functions'][0])
+            ax1.plot([L_func.real], [L_func.imag], 'o', color='#00ff88')
         ax1.set_xlabel('Re(L)')
         ax1.set_ylabel('Im(L)')
-        ax1.set_title('L-function in Complex Plane')
+        ax1.set_title('Representation in Complex Plane')
         ax1.grid(True, alpha=0.3)
         
         # Galois representation
         ax2 = fig.add_subplot(132)
-        galois = list_to_complex(ciphertext['galois_representation'])
-        im = ax2.imshow(np.abs(galois), cmap='viridis', aspect='auto')
+        if 'representations' in ciphertext and ciphertext['representations']:
+            galois = list_to_complex(ciphertext['representations'][0])
+            im = ax2.imshow(np.abs(galois), cmap='viridis', aspect='auto')
         ax2.set_xlabel('Column')
         ax2.set_ylabel('Row')
         ax2.set_title('Galois Representation')
@@ -873,8 +869,9 @@ def create_visualization(algo_name: str, ciphertext: dict):
         
         # Graph embedding
         ax3 = fig.add_subplot(133)
-        embedding = list_to_complex(ciphertext['graph_embedding'])
-        ax3.plot(np.abs(embedding.flatten()[:50]), color='#8800ff', linewidth=2)
+        if 'representations' in ciphertext and ciphertext['representations']:
+            embedding = list_to_complex(ciphertext['representations'][0])
+            ax3.plot(np.abs(embedding.flatten()[:50]), color='#8800ff', linewidth=2)
         ax3.set_xlabel('Dimension')
         ax3.set_ylabel('Embedding Value')
         ax3.set_title('Graph Neural Network Embedding')
@@ -989,7 +986,7 @@ def main():
     
     # Initialize cipher
     ciphers = {
-        "TNHC": TopologicalNeuralCipher(dimension=8),
+        "TNHC": TopologicalNeuralCipher(dimension=16),
         "GASS": GravitationalAIScrambler(num_sites=16),
         "DNC": DNANeuralCipher(sequence_length=64),
         "CQE": ConsciousQuantumCipher(microtubule_size=13),
