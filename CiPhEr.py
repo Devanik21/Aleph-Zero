@@ -320,14 +320,14 @@ class DNANeuralCipher:
         self.transformer = self._initialize_transformer()
         
     def _initialize_codon_mapping(self) -> dict:
-        """Map bytes to DNA codons (3-base sequences)"""
+        """Map bytes to DNA codons (4-base sequences for 1:1 mapping)"""
         bases = ['A', 'T', 'C', 'G']
-        codons = [b1+b2+b3 for b1 in bases for b2 in bases for b3 in bases]
+        # 4^4 = 256 unique sequences
+        units = [b1+b2+b3+b4 for b1 in bases for b2 in bases for b3 in bases for b4 in bases]
         
-        # Map 0-255 to codons
         codon_map = {}
         for i in range(256):
-            codon_map[i] = codons[i % len(codons)]
+            codon_map[i] = units[i]
         
         return codon_map
     
@@ -354,8 +354,8 @@ class DNANeuralCipher:
         reverse_map = {v: k for k, v in self.codon_map.items()}
         
         decoded_bytes = []
-        for i in range(0, len(dna_sequence), 3):
-            codon = dna_sequence[i:i+3]
+        for i in range(0, len(dna_sequence), 4):
+            codon = dna_sequence[i:i+4]
             if codon in reverse_map:
                 decoded_bytes.append(reverse_map[codon])
         
@@ -414,7 +414,7 @@ class DNANeuralCipher:
         mutated_sequence = ""
         
         for i, base in enumerate(dna_sequence):
-            if i < len(key_hash) and key_hash[i % len(key_hash)] % 4 == 0:
+            if key_hash[i % len(key_hash)] % 4 == 0:
                 # Mutation
                 bases = ['A', 'T', 'C', 'G']
                 mutated_sequence += bases[(bases.index(base) + 1) % 4]
@@ -439,7 +439,7 @@ class DNANeuralCipher:
         original_sequence = ""
         
         for i, base in enumerate(mutated_sequence):
-            if i < len(key_hash) and key_hash[i % len(key_hash)] % 4 == 0:
+            if key_hash[i % len(key_hash)] % 4 == 0:
                 # Reverse mutation
                 bases = ['A', 'T', 'C', 'G']
                 original_sequence += bases[(bases.index(base) - 1) % 4]
@@ -516,8 +516,8 @@ class ConsciousQuantumCipher:
         dt = 0.01
         
         for _ in range(time_steps):
-            # dS/dt = f(S, t) where f is neural network
-            gradient = -0.1 * state + 0.05 * np.random.randn(*state.shape)
+            # dS/dt = f(S, t) where f is neural network (deterministic for research demo)
+            gradient = -0.1 * state
             state = state + gradient * dt
             
             # Apply quantum interference
@@ -562,10 +562,14 @@ class ConsciousQuantumCipher:
         """Reverse consciousness evolution"""
         evolved_state = list_to_complex(ciphertext['quantum_state'])
         
-        # Reverse neural ODE (approximate)
+        # Reverse neural ODE (exact inversion for the deterministic demo)
         state = evolved_state.copy()
+        dt = 0.01
         for _ in range(10):
+            # Reverse phase
             state = state / np.exp(1j * 2 * np.pi * 1e11 * 1e-12)
+            # Reverse amplitude decay: S_prev = S_next / (1 - 0.1 * dt)
+            state = state / (1 - 0.1 * dt)
         
         # Decode
         decrypted_bytes = []
@@ -573,7 +577,7 @@ class ConsciousQuantumCipher:
         
         for i in range(ciphertext['original_length']):
             if i < len(flat_state):
-                byte_val = int((flat_state[i].real * 255) % 256)
+                byte_val = int(round(flat_state[i].real * 255) % 256)
                 decrypted_bytes.append(byte_val)
         
         return bytes(decrypted_bytes)
@@ -672,7 +676,12 @@ class LanglandsDeepCipher:
     def _graph_message_passing(self, graph: np.ndarray) -> np.ndarray:
         """GNN message passing on representation space"""
         # Message passing: m_ij = W_message · h_j
-        messages = graph @ self.graph_nn['W_message']
+        # We need to ensure graph is 32x32 to match W_message
+        h = np.zeros((32, 32), dtype=complex)
+        limit = min(32, graph.shape[0])
+        h[:limit, :limit] = graph[:limit, :limit]
+        
+        messages = h @ self.graph_nn['W_message']
         
         # Aggregation: h_i' = aggregate({m_ij})
         aggregated = messages @ self.graph_nn['W_aggregate']
