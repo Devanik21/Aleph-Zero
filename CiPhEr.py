@@ -1495,7 +1495,7 @@ def main():
     
     st.header(algo_info["title"])
     
-    with st.expander("� Theoretical Foundation", expanded=True):
+    with st.expander("♾️ Theoretical Foundation", expanded=True):
         st.markdown(f"""
         **Theory**: {algo_info['theory']}
         
