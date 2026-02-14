@@ -127,7 +127,7 @@ class TopologicalNeuralCipher:
         for byte_val in data_array:
             # Encode byte into state
             temp_state = np.zeros(256, dtype=complex)
-            temp_state[byte_val] = 1.0
+            temp_state[int(byte_val)] = 1.0
             
             # Neural network predicts optimal braid sequence
             neural_probs = self._neural_forward(temp_state[:self.dimension*self.dimension].reshape(self.dimension, self.dimension))
@@ -137,7 +137,7 @@ class TopologicalNeuralCipher:
             # We use a 1D state of size d*d to represent 2-strand entanglement
             d_sq = self.dimension * self.dimension
             state_vec = np.zeros(d_sq, dtype=complex)
-            state_vec[byte_val % d_sq] = 1.0
+            state_vec[int(byte_val) % d_sq] = 1.0
             
             for braid_idx in braid_sequence:
                 gen = self.braid_generators[braid_idx]
@@ -256,8 +256,14 @@ class GravitationalAIScrambler:
         data_array = np.frombuffer(plaintext, dtype=np.uint8)
         dim = 2 ** (self.N // 2)
         
-        # Apply scrambling sequentially to each byte to preserve order
-        scrambled_states = []
+        # RL selects optimal scrambling strategy based on first byte
+        sample_state = np.zeros(dim, dtype=complex)
+        sample_state[int(data_array[0]) % dim] = 1.0
+        state_hash = hash(sample_state.tobytes()[:100]) % 10000
+        action = self._rl_select_action(state_hash)
+        
+        # Apply gravitational scrambling
+        adjusted_time = scrambling_time * (1 + action * 0.1)
         U_scramble = expm(-1j * self.hamiltonian * adjusted_time)
         
         for byte in data_array:
@@ -339,7 +345,7 @@ class DNANeuralCipher:
         """Encode data into DNA sequence"""
         dna_sequence = ""
         for byte in data:
-            dna_sequence += self.codon_map[byte]
+            dna_sequence += self.codon_map[int(byte)]
         return dna_sequence
     
     def _decode_from_dna(self, dna_sequence: str) -> bytes:
@@ -488,7 +494,7 @@ class ConsciousQuantumCipher:
         if delta_E > threshold:
             # Non-computable collapse
             collapsed_state = np.zeros_like(state)
-            max_idx = np.unravel_index(np.argmax(np.abs(state), axis=None), state.shape)
+            max_idx = np.unravel_index(np.argmax(np.abs(state)), state.shape)
             collapsed_state[max_idx] = 1.0
             return collapsed_state
         
