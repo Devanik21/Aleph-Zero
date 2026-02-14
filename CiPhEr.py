@@ -1354,29 +1354,30 @@ def main():
     
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔬 Deep Mathematical Foundation", expanded=False):
-        st.markdown("#### :cyan[1️⃣ TNHC-Ω (Topological)]")
+        st.markdown("### 1️⃣ TNHC-Ω (Topological)")
         st.markdown(r"Braid group action on $B_n$ follows the **Yang-Baxter Equation**:")
         st.latex(r"R_{12}R_{13}R_{23} = R_{23}R_{13}R_{12}")
         st.markdown("Security governed by **#P-hardness** of the Jones Polynomial $V_L(t)$.")
         
-        st.markdown("#### :cyan[2️⃣ GASS-Ω (Scrambling)]")
+        st.markdown("### 2️⃣ GASS-Ω (Scrambling)")
         st.markdown(r"SYK-type Hamiltonian saturates the **MSS Chaos Bound**:")
         st.latex(r"H = \sum J_{ijkl} \psi_i \psi_j \psi_k \psi_l \implies \lambda_L \leq \frac{2\pi}{\beta}")
         
-        st.markdown("#### :cyan[3️⃣ DNC-Ω (Genomic)]")
+        st.markdown("### 3️⃣ DNC-Ω (Genomic)")
         st.markdown(r"High-entropy Attention mechanism with recursive mutation:")
         st.latex(r"Attention(Q,K,V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V")
         
-        st.markdown("#### :cyan[4️⃣ CQE-Ω (Conscious)]")
+        # Adding a bit of space
+        st.markdown("### 4️⃣ CQE-Ω (Conscious)")
         st.markdown(r"Based on **Orch-OR** and Neural ODE evolution:")
         st.latex(r"E_G \approx \frac{\hbar}{\tau} \quad \text{and} \quad \frac{d\mathbf{z}}{dt} = f(\mathbf{z}, t, \theta)")
         
-        st.markdown("#### :cyan[5️⃣ LDLC-Ω (Algebraic)]")
+        st.markdown("### 5️⃣ LDLC-Ω (Algebraic)")
         st.markdown(r"Langlands Correspondence on Fractal Manifolds:")
         st.latex(r"\rho: Gal(\overline{\mathbb{Q}}/\mathbb{Q}) \to GL_n(\mathbb{C})")
         
         st.markdown("---")
-        st.error("**⚠️ COMPUTATIONAL IRREDUCIBILITY**")
+        st.markdown("### ⚠️ COMPUTATIONAL IRREDUCIBILITY")
         st.markdown(r"The browser freezes due to **Tetration-Level Complexity ($2 \uparrow\uparrow 3$)**.")
         st.info(r"💡 **The Star-Energy Analogy:** At **Depth 3**, a civilization would need the total energy of a star to keep a quantum computer coherent long enough to guess the geometry. The freeze is physical proof of the math's mass.")
     
