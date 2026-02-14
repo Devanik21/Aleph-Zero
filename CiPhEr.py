@@ -1377,8 +1377,8 @@ def main():
         
         st.markdown("---")
         st.error("**⚠️ COMPUTATIONAL IRREDUCIBILITY**")
-        st.markdown("The browser freezes due to **Tetration-Level Complexity ($2 \uparrow\uparrow 3$)**.")
-        st.info("💡 **The Star-Energy Analogy:** At **Depth 3**, a civilization would need the total energy of a star to keep a quantum computer coherent long enough to guess the geometry. The freeze is physical proof of the math's mass.")
+        st.markdown(r"The browser freezes due to **Tetration-Level Complexity ($2 \uparrow\uparrow 3$)**.")
+        st.info(r"💡 **The Star-Energy Analogy:** At **Depth 3**, a civilization would need the total energy of a star to keep a quantum computer coherent long enough to guess the geometry. The freeze is physical proof of the math's mass.")
     
     # Algorithm descriptions
     algo_descriptions = {
