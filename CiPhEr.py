@@ -1409,7 +1409,7 @@ def main():
     operation = st.sidebar.radio("⚙️ Operation", ["Encrypt", "Decrypt"])
     
     st.sidebar.markdown("---")
-    with st.sidebar.expander("🔬 Deep Mathematical Foundation", expanded=False):
+    with st.sidebar.expander("🔬 Deep Mathematical Foundation", expanded=True):
         st.markdown("### 1️⃣ TNHC-Ω (Topological)")
         st.markdown(r"Braid group action on $B_n$ follows the **Yang-Baxter Equation**:")
         st.latex(r"R_{12}R_{13}R_{23} = R_{23}R_{13}R_{12}")
@@ -1603,7 +1603,7 @@ def main():
                 st.info("Possible causes: Wrong key, corrupted data, or algorithm mismatch")
     
     st.markdown("---")
-    with st.expander("📜 THE OMEGA-X MANUSCRIPT: MATHEMATICAL PROOFS & THEORETICAL ANALYSIS", expanded=False):
+    with st.expander("📜 THE OMEGA-X MANUSCRIPT: MATHEMATICAL PROOFS & THEORETICAL ANALYSIS", expanded=True):
         st.markdown("""
         ### **PREFACE: ON COMPUTATIONAL UNDECIDABILITY**
         The OMEGA-X system is built on the principle of **Computational Irreducibility**. By mapping finite data into the **Fractal-Recursive Latent Space**, we ensure that the only way to find the plaintext is to simulate the universe-sized state space.
