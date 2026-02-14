@@ -1,11 +1,11 @@
 """
-NOBEL-TIER CRYPTOGRAPHIC ALGORITHMS
-====================================
+ADVANCED MATHEMATICAL CRYPTOGRAPHIC ALGORITHMS
+===============================================
 Author: Devanik
 Affiliation: B.Tech ECE '26, NIT Agartala
 Fellowship: Samsung Convergence Software Fellowship (Grade I), IISc
 
-FIVE PARADIGM-SHIFTING ALGORITHMS:
+RESEARCH FRAMEWORKS:
 1. Topological-Neural Hybrid Cipher (TNHC)
 2. Gravitational-AI Scrambling System (GASS)
 3. DNA-Neural Cryptography (DNC)
@@ -29,6 +29,17 @@ from scipy.linalg import expm
 import time
 from collections import defaultdict
 
+def complex_to_list(arr):
+    """Convert complex numpy array to JSON-serializable list [real, imag]"""
+    if isinstance(arr, np.ndarray):
+        return np.stack([arr.real, arr.imag], axis=-1).tolist()
+    return [arr.real, arr.imag]
+
+def list_to_complex(lst):
+    """Convert [real, imag] list back to complex mapping"""
+    arr = np.array(lst)
+    return arr[..., 0] + 1j * arr[..., 1]
+
 # ============================================================================
 # ALGORITHM 1: TOPOLOGICAL-NEURAL HYBRID CIPHER (TNHC)
 # ============================================================================
@@ -40,7 +51,7 @@ class TopologicalNeuralCipher:
     Security: Topological invariants + AI-discovered optimal braiding sequences
     """
     
-    def __init__(self, dimension: int = 8, neural_layers: int = 3):
+    def __init__(self, dimension: int = 16, neural_layers: int = 3):
         self.dimension = dimension
         self.neural_layers = neural_layers
         self.braid_generators = self._initialize_braid_generators()
@@ -81,8 +92,8 @@ class TopologicalNeuralCipher:
         return weights
     
     def _neural_forward(self, input_state: np.ndarray) -> np.ndarray:
-        """Forward pass through neural network"""
-        x = input_state.flatten()
+        """Forward pass through neural network using state magnitudes"""
+        x = np.abs(input_state).flatten()
         
         for i, (W, b) in enumerate(self.neural_weights):
             x = x @ W + b
@@ -124,17 +135,22 @@ class TopologicalNeuralCipher:
             braid_sequence = np.random.choice(len(self.braid_generators), size=5, p=neural_probs)
             
             # Apply topological braiding
-            current_state = temp_state[:self.dimension].copy()
+            # We use a 1D state of size d*d to represent 2-strand entanglement
+            d_sq = self.dimension * self.dimension
+            state_vec = np.zeros(d_sq, dtype=complex)
+            state_vec[byte_val % d_sq] = 1.0
+            
             for braid_idx in braid_sequence:
                 gen = self.braid_generators[braid_idx]
-                current_state = np.tensordot(gen, current_state, axes=([2, 3], [0, 0]))
-                current_state = current_state.flatten()[:self.dimension]
-                current_state = current_state / (np.linalg.norm(current_state) + 1e-10)
+                # Apply 2-strand gate (reshape for matrix multiplication)
+                U = expm(1j * np.pi * gen.reshape(d_sq, d_sq))
+                state_vec = U @ state_vec
+                state_vec = state_vec / (np.linalg.norm(state_vec) + 1e-10)
             
             encrypted_states.append({
-                'state': current_state.tolist(),
+                'state': complex_to_list(state_vec),
                 'braid_seq': braid_sequence.tolist(),
-                'entropy': self._compute_topological_entropy(current_state)
+                'entropy': self._compute_topological_entropy(state_vec)
             })
         
         return {
@@ -149,14 +165,15 @@ class TopologicalNeuralCipher:
         decrypted_bytes = []
         
         for enc_state in ciphertext['encrypted_states']:
-            state = np.array(enc_state['state'], dtype=complex)
+            state = list_to_complex(enc_state['state'])
             braid_sequence = enc_state['braid_seq']
+            d_sq = self.dimension * self.dimension
             
             # Apply inverse braiding
             for braid_idx in reversed(braid_sequence):
-                gen_inv = np.conj(self.braid_generators[braid_idx])
-                state = np.tensordot(gen_inv, state, axes=([2, 3], [0, 0]))
-                state = state.flatten()[:self.dimension]
+                gen = self.braid_generators[braid_idx]
+                U_inv = expm(-1j * np.pi * gen.reshape(d_sq, d_sq))
+                state = U_inv @ state
             
             # Decode byte
             probabilities = np.abs(state) ** 2
@@ -243,7 +260,7 @@ class GravitationalAIScrambler:
         # Initialize state
         initial_state = np.zeros(dim, dtype=complex)
         for idx, byte in enumerate(data_array):
-            initial_state[byte % dim] += 1.0
+            initial_state[int(byte) % dim] += 1.0
         initial_state = initial_state / (np.linalg.norm(initial_state) + 1e-10)
         
         # RL selects optimal scrambling strategy
@@ -260,7 +277,7 @@ class GravitationalAIScrambler:
         
         return {
             'algorithm': 'GASS',
-            'scrambled_state': scrambled_state.tolist(),
+            'scrambled_state': complex_to_list(scrambled_state),
             'scrambling_time': adjusted_time,
             'lyapunov_exponent': lyapunov,
             'rl_action': action,
@@ -270,7 +287,7 @@ class GravitationalAIScrambler:
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
         """Reverse gravitational scrambling"""
-        scrambled_state = np.array(ciphertext['scrambled_state'], dtype=complex)
+        scrambled_state = list_to_complex(ciphertext['scrambled_state'])
         scrambling_time = ciphertext['scrambling_time']
         
         # Inverse time evolution
@@ -480,7 +497,7 @@ class ConsciousQuantumCipher:
         if delta_E > threshold:
             # Non-computable collapse
             collapsed_state = np.zeros_like(state)
-            max_idx = np.unravel_index(np.argmax(np.abs(state)), state.shape)
+            max_idx = np.unravel_index(np.argmax(np.abs(state), axis=None), state.shape)
             collapsed_state[max_idx] = 1.0
             return collapsed_state
         
@@ -536,7 +553,7 @@ class ConsciousQuantumCipher:
         
         return {
             'algorithm': 'CQE',
-            'quantum_state': evolved_state.tolist(),
+            'quantum_state': complex_to_list(evolved_state),
             'reduction_time': reduction_time,
             'microtubule_size': self.microtubule_size,
             'original_length': len(plaintext),
@@ -545,7 +562,7 @@ class ConsciousQuantumCipher:
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
         """Reverse consciousness evolution"""
-        evolved_state = np.array(ciphertext['quantum_state'], dtype=complex)
+        evolved_state = list_to_complex(ciphertext['quantum_state'])
         
         # Reverse neural ODE (approximate)
         state = evolved_state.copy()
@@ -627,8 +644,10 @@ class LanglandsDeepCipher:
         
         # Compute L-function at critical line Re(s) = 1/2
         s_values = np.linspace(0.5 + 0j, 0.5 + 10j, len(coefficients))
+        if len(coefficients) == 0:
+            return np.zeros(10, dtype=complex)
+            
         L_values = []
-        
         for s in s_values:
             L = sum(a / (n ** s) for n, a in enumerate(coefficients, 1) if a > 0)
             L_values.append(L)
@@ -680,9 +699,9 @@ class LanglandsDeepCipher:
         
         return {
             'algorithm': 'LDLC',
-            'L_function': L_function.tolist(),
-            'galois_representation': galois_rep.tolist(),
-            'graph_embedding': graph_embedding.tolist(),
+            'L_function': complex_to_list(L_function),
+            'galois_representation': complex_to_list(galois_rep),
+            'graph_embedding': complex_to_list(graph_embedding),
             'prime': self.prime,
             'zeros_count': zeros_estimate,
             'original_length': len(plaintext),
@@ -691,7 +710,7 @@ class LanglandsDeepCipher:
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
         """Reverse Langlands correspondence"""
-        galois_rep = np.array(ciphertext['galois_representation'], dtype=complex)
+        galois_rep = list_to_complex(ciphertext['galois_representation'])
         
         # Extract data from Galois representation
         decrypted_bytes = []
@@ -746,7 +765,7 @@ def create_visualization(algo_name: str, ciphertext: dict):
     elif algo_name == 'GASS':
         # Scrambling visualization
         ax1 = fig.add_subplot(131)
-        state = np.array(ciphertext['scrambled_state'])
+        state = list_to_complex(ciphertext['scrambled_state'])
         ax1.plot(np.abs(state[:100]), color='#00ff88', linewidth=2)
         ax1.set_xlabel('State Index')
         ax1.set_ylabel('Amplitude')
@@ -806,7 +825,7 @@ def create_visualization(algo_name: str, ciphertext: dict):
     elif algo_name == 'CQE':
         # Quantum state
         ax1 = fig.add_subplot(131)
-        state = np.array(ciphertext['quantum_state'])
+        state = list_to_complex(ciphertext['quantum_state'])
         ax1.plot(np.abs(state.flatten()[:100]), color='#00ff88', linewidth=2)
         ax1.set_xlabel('Tubulin Index')
         ax1.set_ylabel('Amplitude')
@@ -836,7 +855,7 @@ def create_visualization(algo_name: str, ciphertext: dict):
     elif algo_name == 'LDLC':
         # L-function
         ax1 = fig.add_subplot(131)
-        L_func = np.array(ciphertext['L_function'])
+        L_func = list_to_complex(ciphertext['L_function'])
         ax1.plot(L_func.real[:50], L_func.imag[:50], 'o-', color='#00ff88')
         ax1.set_xlabel('Re(L)')
         ax1.set_ylabel('Im(L)')
@@ -845,7 +864,7 @@ def create_visualization(algo_name: str, ciphertext: dict):
         
         # Galois representation
         ax2 = fig.add_subplot(132)
-        galois = np.array(ciphertext['galois_representation'])
+        galois = list_to_complex(ciphertext['galois_representation'])
         im = ax2.imshow(np.abs(galois), cmap='viridis', aspect='auto')
         ax2.set_xlabel('Column')
         ax2.set_ylabel('Row')
@@ -854,7 +873,7 @@ def create_visualization(algo_name: str, ciphertext: dict):
         
         # Graph embedding
         ax3 = fig.add_subplot(133)
-        embedding = np.array(ciphertext['graph_embedding'])
+        embedding = list_to_complex(ciphertext['graph_embedding'])
         ax3.plot(np.abs(embedding.flatten()[:50]), color='#8800ff', linewidth=2)
         ax3.set_xlabel('Dimension')
         ax3.set_ylabel('Embedding Value')
@@ -867,7 +886,7 @@ def create_visualization(algo_name: str, ciphertext: dict):
 
 def main():
     st.set_page_config(
-        page_title="Nobel-Tier Cryptography",
+        page_title="Advanced Mathematical Cryptography",
         page_icon="🏆",
         layout="wide"
     )
@@ -887,7 +906,7 @@ def main():
     </style>
     """, unsafe_allow_html=True)
     
-    st.markdown('<h1 class="main-title">🏆 NOBEL-TIER CRYPTOGRAPHY 🏆</h1>', unsafe_allow_html=True)
+    st.markdown('<h1 class="main-title">🛡️ ADVANCED RESEARCH CRYPTOGRAPHY 🛡️</h1>', unsafe_allow_html=True)
     
     st.markdown("""
     **Author**: Devanik | **Affiliation**: NIT Agartala | **Fellowship**: Samsung Convergence (Grade I), IISc
@@ -1309,15 +1328,14 @@ def main():
         
         ---
         
-        ## The Nobel Committee Should Recognize:
+        ### Real-World Mathematical Impact
         
-        1. **Unification**: These algorithms unify disparate fields
-        2. **Innovation**: Completely new approaches to fundamental problems
-        3. **Impact**: Will define cryptography for the next century
-        4. **Elegance**: Beautiful mathematics with practical applications
-        5. **Paradigm Shift**: Changes how we think about information and security
+        1. **Unification**: These algorithms explore interdisciplinary connections
+        2. **Innovation**: Fosters new approaches to fundamental security problems
+        3. **Future-Proof**: Investigates cryptographic resilience for the quantum era
+        4. **Scientific Rigor**: Grounded in theoretical physics and number theory
         
-        **This is Nobel-tier work.**
+        **This research advances the field of theoretical cryptography.**
         """)
     
     st.markdown("---")
