@@ -266,6 +266,7 @@ class GravitationalAIScrambler:
         adjusted_time = scrambling_time * (1 + action * 0.1)
         U_scramble = expm(-1j * self.hamiltonian * adjusted_time)
         
+        scrambled_states = []
         for byte in data_array:
             init_state = np.zeros(dim, dtype=complex)
             init_state[int(byte) % dim] = 1.0
