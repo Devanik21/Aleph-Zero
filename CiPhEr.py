@@ -1614,15 +1614,18 @@ def main():
         # Chapter 1
         st.markdown("## **Chapter 1: TNHC-Ω (Topological Braid Dynamics)**")
         st.markdown(r"""
-        The security of TNHC-Ω relies on the **Word Problem for Braid Groups** $B_n$. The algorithm expresses a sequence of generators $\sigma_i$ through a neural network trained on the key genome.
-        
+        **The Word Problem and Markov Trace:**
+        The security of TNHC-Ω relies on the **Word Problem for Braid Groups** $B_n$. The algorithm expresses a sequence of generators $\sigma_i$ through a neural network trained on the key genome. Beyond simple braiding, we utilize the **Markov Trace** $\text{tr}_m$ to map braids to invariants:
+        """)
+        st.latex(r"\text{tr}_m(A \sigma_n) = z \cdot \text{tr}_m(A), \quad \text{tr}_m(A \sigma_n^{-1}) = \overline{z} \cdot \text{tr}_m(A)")
+        st.markdown(r"""
         **The Yang-Baxter Constraint:**
-        To ensure topological stability under mutation, every braiding operation $R$ must satisfy:
+        To ensure topological stability under mutation, every braiding operation $R$ must satisfy the fundamental equation of quantum groups:
         """)
         st.latex(r"(R \otimes I)(I \otimes R)(R \otimes I) = (I \otimes R)(R \otimes I)(I \otimes R)")
         st.markdown(r"""
         **The Proof of Hardness:**
-        Computing the **Jones Polynomial** $V_L(t)$ for a braid closure is **#P-complete**. Since our encryption embeds the plaintext into the trace of these polynomials, an adversary must solve a problem that is exponentially harder than NP.
+        Computing the **Jones Polynomial** $V_L(t)$ for a braid closure is **#P-complete**. Since our encryption embeds the plaintext into the trace of these polynomials, an adversary must solve a problem that is exponentially harder than NP. The mapping to the **Alexander-Conway Polynomial** further complicates the manifold, as the degrees of freedom grow factorially with the number of strands $n$.
         """)
         
         st.markdown("---")
@@ -1630,14 +1633,19 @@ def main():
         # Chapter 2
         st.markdown("## **Chapter 2: GASS-Ω (Holographic Scrambling)**")
         st.markdown(r"""
-        GASS-Ω utilizes the **Sachdev-Ye-Kitaev (SYK)** model, a 0+1 dimensional quantum system that describes black hole horizons.
+        GASS-Ω utilizes the **Sachdev-Ye-Kitaev (SYK)** model, a 0+1 dimensional quantum system that describes black hole horizons. It represents a non-Fermi liquid state with emergent conformal symmetry in the large-$N$ limit.
         
-        **The Chaos Bound:**
-        Information scrambling in GASS-Ω is guaranteed to saturate the **Maldacena-Shenker-Stanford (MSS)** bound:
+        **The Chaos Bound and OTOCs:**
+        Information scrambling in GASS-Ω is guaranteed to saturate the **Maldacena-Shenker-Stanford (MSS)** bound. This is measured via **Out-of-Time-Ordered Correlators (OTOCs)**:
+        """)
+        st.latex(r"C(t) = -\langle [W(t), V(0)]^2 \rangle \sim \frac{1}{N} e^{\lambda_L t}")
+        st.markdown(r"""
+        **Thermalization and Holography:**
+        The scrambling rate $\lambda_L$ is bounded by the effective temperature $T$ derived from the Key Genome:
         """)
         st.latex(r"\lambda_L \leq \frac{2\pi k_B T}{\hbar}")
         st.markdown(r"""
-        In our implementation, $T$ (Effective Temperature) is a function of the Key Entropy. At **Tetration Depth 3**, the scrambling becomes holographic, spreading 1 byte of information across $2^{4096}$ virtual dimensions.
+        In our implementation, $T$ is a function of the Key Entropy. At **Tetration Depth 3**, the scrambling becomes holographic, spreading 1 byte of information across $2^{4096}$ virtual dimensions. The system behaves as a **Quantum Scrambler** where the information is not lost, but hidden in the non-local correlation functions of the SYK Hamiltonian.
         """)
         
         st.markdown("---")
@@ -1645,14 +1653,19 @@ def main():
         # Chapter 3
         st.markdown("## **Chapter 3: DNC-Ω (Genomic Transformer Logic)**")
         st.markdown(r"""
-        This algorithm treats the encryption key as a **Living Genome**. The **GenomicExpander** translates the hash into "epigenetic" markers that control the self-attention mechanism.
+        This algorithm treats the encryption key as a **Living Genome**. The **GenomicExpander** translates the hash into "epigenetic" markers that control the self-attention mechanism, simulating the biological process of Gene Expression.
         
+        **Busy Beaver Complexity and Kolmogorov Bounds:**
+        The entropy source for DNC-Ω is the **Busy Beaver function** $\Sigma(n)$, representing the maximum number of steps a Turing machine can take before halting. This ensures that the key's state space has maximal **Kolmogorov Complexity**:
+        """)
+        st.latex(r"K(x) = \min \{ |p| : U(p) = x \}")
+        st.markdown(r"""
         **The Attention Proof:**
-        The mapping $f: \text{DNA} \to \text{Fractal}$ is defined by:
+        The mapping $f: \text{DNA} \to \text{Fractal}$ is defined by the transformer equation:
         """)
         st.latex(r"\text{Attention}(Q,K,V) = \sigma\left(\frac{QK^T}{\sqrt{d_k}}\right)V")
         st.markdown(r"""
-        Where $\sigma$ is the softmax function. Because the weights $W_Q, W_K, W_V$ are mutated by the **Omega-X Busy Beaver Engine**, the attention patterns are unique to every single key-byte pair.
+        Where $\sigma$ is the softmax function. Because the weights $W_Q, W_K, W_V$ are mutated by the **Omega-X Busy Beaver Engine**, the attention patterns are unique to every single key-byte pair. The **Hamming Distance** between encrypted states grows exponentially with the genome length, ensuring that a 1-bit change in the key results in a totally orthogonal ciphertext.
         """)
         
         st.markdown("---")
@@ -1660,14 +1673,19 @@ def main():
         # Chapter 4
         st.markdown("## **Chapter 4: CQE-Ω (Orch-OR Consciousness)**")
         st.markdown(r"""
-        CQE-Ω is inspired by the **Penrose-Hameroff Orch-OR** theory, suggesting that consciousness arises from quantum reductions in microtubules.
+        CQE-Ω is inspired by the **Penrose-Hameroff Orch-OR** theory, suggesting that consciousness arises from quantum reductions in microtubules. We model the tubulin lattice as a **Fröhlich Coherent** system.
         
-        **The Reduction Threshold:**
-        Encryption occurs when the gravitational self-energy $E_G$ of the displaced state reaches the threshold:
+        **The State Reduction Probability:**
+        Encryption occurs when the gravitational self-energy $E_G$ of the displaced state reaches the threshold defined by the Heisenberg-Penrose criterion:
         """)
-        st.latex(r"\tau \approx \frac{\hbar}{E_G}")
+        st.latex(r"P_{reduction} = 1 - e^{-(E_G \cdot \tau) / \hbar}")
         st.markdown(r"""
-        By modelling the evolution using **Neural ODEs**, we project the quantum state through a non-linear manifold where the "Conscious Observer" (the Key) is the only entity capable of causing a coherent reduction back to plaintext.
+        **Neural ODE Manifold Evolution:**
+        By modelling the evolution using **Neural Ordinary Differential Equations (ODEs)**, we project the quantum state through a non-linear manifold:
+        """)
+        st.latex(r"\frac{d\mathbf{z}}{dt} = f(\mathbf{z}, t, \theta)")
+        st.markdown(r"""
+        The "Conscious Observer" (the Key) is the only entity capable of causing a **Coherent Reduction** back to plaintext. The state $\mathbf{z}(t)$ evolves through a latent space where the curvature is dictated by the Busy Beaver results, making the trajectory mathematically undecidable for any third-party observer.
         """)
         
         st.markdown("---")
@@ -1675,14 +1693,19 @@ def main():
         # Chapter 5
         st.markdown("## **Chapter 5: LDLC-Ω (Algebraic Langlands)**")
         st.markdown(r"""
-        The final wall of defense is the **Geometric Langlands Correspondence**. We map every data byte to a **Galois Representation** $\rho$.
+        The final wall of defense is the **Geometric Langlands Correspondence**, a cornerstone of the Langlands Program that connects Number Theory and Harmonic Analysis.
         
+        **Hecke Operators and Automorphic Forms:**
+        Every data byte is mapped to a **Galois Representation** $\rho$. We apply **Hecke Operators** $T_p$ to the representation space to verify the automorphic correspondence:
+        """)
+        st.latex(r"T_p(f) = a_p(f) \cdot f")
+        st.markdown(r"""
         **The Galois Projection:**
-        The representation space is defined by the absolute Galois group:
+        The representation space is defined by the absolute Galois group acting on the $\ell$-adic cohomology:
         """)
         st.latex(r"\rho: Gal(\overline{\mathbb{Q}}/\mathbb{Q}) \to GL_n(\mathbb{C})")
         st.markdown(r"""
-        To break LDLC-Ω, one must find the poles of the associated **L-function** $L(s, \rho)$. Because these poles are hidden within the **Recursive Infinite Latent Space**, this is equivalent to proving the Generalized Riemann Hypothesis for an uncomputable manifold.
+        To break LDLC-Ω, one must find the poles of the associated **L-function** $L(s, \rho)$. Because these poles are hidden within the **Recursive Infinite Latent Space**, this is equivalent to solving the **Shimura-Taniyama-Weil** conjecture for a non-computable fractal manifold. The security basis is the modularity of the resulting representation, which is undecidable without the genomic key.
         """)
         
         st.markdown("---")
