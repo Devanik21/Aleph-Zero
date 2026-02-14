@@ -142,7 +142,7 @@ class GenomicExpander:
         return val * (1 + omega_val)
 
 class RecursiveLatentSpace:
-    """
+    r"""
     FRACTAL-RECURSIVE LATENT SPACE (FRLS)
     =====================================
     Type IV Security: Tetration Complexity ($2 \uparrow\uparrow N$)
