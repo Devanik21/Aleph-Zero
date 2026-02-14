@@ -1322,6 +1322,26 @@ def main():
         -webkit-text-fill-color: transparent;
         margin-bottom: 1rem;
     }
+    /* Neon Button Styling */
+    div.stButton > button {
+        background-color: transparent !important;
+        color: #e0e0e0 !important;
+        border: 1px solid rgba(255, 255, 255, 0.2) !important;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        border-radius: 8px !important;
+        padding: 0.5rem 1rem !important;
+        font-weight: 500 !important;
+    }
+    div.stButton > button:hover {
+        border-color: #00ffcc !important;
+        box-shadow: 0 0 15px rgba(0, 255, 204, 0.6), inset 0 0 5px rgba(0, 255, 204, 0.3) !important;
+        color: #00ffcc !important;
+        transform: translateY(-2px) !important;
+        background-color: rgba(0, 255, 204, 0.05) !important;
+    }
+    div.stButton > button:active {
+        transform: translateY(1px) !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     
