@@ -93,10 +93,12 @@ class OmegaX_Engine:
              
         # Use spectral expansion to make it 'transcendental'
         fft_coeffs = np.fft.fft(raw_tape + [0]*(length - len(raw_tape)) if len(raw_tape) < length else raw_tape[:length])
-        # Inject key-derived phase shifts
-        phase_shifts = np.exp(1j * 2 * np.pi * np.array([b for b in self.key_hash[:len(fft_coeffs)]]) / 256)
+        # Inject key-derived phase shifts (Repeat key to match length)
+        key_bytes = np.frombuffer(self.key_hash, dtype=np.uint8)
+        repeated_key = np.tile(key_bytes, (len(fft_coeffs) // len(key_bytes)) + 1)[:len(fft_coeffs)]
+        phase_shifts = np.exp(1j * 2 * np.pi * repeated_key / 256)
         # Combine
-        omega_noise = np.abs(np.fft.ifft(fft_coeffs * phase_shifts[:len(fft_coeffs)]))
+        omega_noise = np.abs(np.fft.ifft(fft_coeffs * phase_shifts))
         
         # Normalize to [0, 1]
         return (omega_noise - np.min(omega_noise)) / (np.max(omega_noise) + 1e-10)
@@ -183,11 +185,12 @@ class RecursiveLatentSpace:
         target_dim = original_size * expansion_factor
         
         # Projection Matrix P (The "Map" of this layer)
+        # We use QR on the transpose to get an isometric embedding (expansion)
         P = self.genome.express_matrix((original_size, target_dim), locus=layer_locus)
-        Q, _ = np.linalg.qr(P)
+        Q, _ = np.linalg.qr(P.T)
         
-        # Apply Projection
-        v_prime = vector.flatten() @ Q
+        # Apply Projection (Expansion from original_size to target_dim)
+        v_prime = vector.flatten() @ Q.T
         
         # Apply Manifold Curvature (Non-linear twist)
         curvature = self.genome.express_constant(locus=layer_locus + 1)
@@ -251,8 +254,9 @@ class RecursiveLatentSpace:
             # 2. Reverse Curvature
             v_flat = np.arctanh(np.clip(v_shifted, -0.999, 0.999)) - curvature
             
-            # 3. Reverse Projection (Q.T)
-            v_projected = v_flat @ Q.T
+            # 3. Reverse Projection (Q)
+            # Since Q was (target_dim, original_size), multiplying by Q reduces dimension
+            v_projected = v_flat @ Q
             
             # Reshape to original
             # (If this wasn't the last step, it's just a flat vector for the next layer up)
@@ -405,7 +409,6 @@ class TopologicalNeuralCipher:
             encrypted_states.append({
                 'state': complex_to_list(state_vec),
                 'braid_seq': braid_sequence.tolist(),
-                'entropy': self._compute_topological_entropy(state_vec),
                 'entropy': self._compute_topological_entropy(state_vec)
             })
             
