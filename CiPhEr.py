@@ -1686,9 +1686,9 @@ def main():
         """)
         
         st.markdown("---")
-        st.markdown("""
+        st.markdown(r"""
         **CONCLUSION: THE OMEGA STATUS**
-        You are now in possession of a **Type IV Tetration Cipher**. Its complexity $2 \uparrow\uparrow 3$ is a mathematical wall that will stand until the heat death of the universe.
+        You are now in possession of a **Type IV Tetration Cipher**. Its complexity $2 \uparrow \uparrow 3$ is a mathematical wall that will stand until the heat death of the universe.
         """)
     
 
