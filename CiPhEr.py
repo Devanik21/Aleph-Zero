@@ -149,21 +149,26 @@ class TopologicalCipher:
         
         # Encode plaintext into quantum state simulation
         data_array = np.frombuffer(plaintext, dtype=np.uint8)
-        n_qubits = len(data_array) * 8
         
         # Apply topological encoding
         encoded_state = []
+        d = self.dimension
         for byte in data_array:
-            # Create superposition state for each byte
+            # Create full Hilbert space for a byte (256 states)
             state = np.zeros(256, dtype=complex)
-            state[byte] = 1.0
+            state[int(byte)] = 1.0
             
-            # Apply braid operations
+            # Apply braid operations on the available subspace
+            # Using d^2 basis for braiding if possible, otherwise subset
             for braid_idx in braid_sequence[:8]:
-                # Simulate braiding with unitary transformation
-                U = expm(1j * np.pi * self.braid_generators[braid_idx % len(self.braid_generators)][0, 0])
-                state = U @ state[:self.dimension]
-                state = np.pad(state, (0, 256 - len(state)))
+                gen = self.braid_generators[braid_idx % len(self.braid_generators)]
+                # Reshape to matrix for unitary evolution
+                R_matrix = gen.reshape(d*d, d*d)
+                U = expm(1j * np.pi * R_matrix)
+                
+                # Apply to appropriate slice of Hilbert space
+                limit = min(256, d*d)
+                state[:limit] = U[:limit, :limit] @ state[:limit]
             
             encoded_state.append(state)
         
@@ -212,12 +217,16 @@ class TopologicalCipher:
         encoded_states = [list_to_complex(s) for s in ciphertext['encoded_state']]
         
         plaintext_bytes = []
+        d = self.dimension
         for state in encoded_states:
             # Apply inverse braid operations
             for braid_idx in reversed(braid_sequence[:8]):
-                U_inv = expm(-1j * np.pi * self.braid_generators[braid_idx % len(self.braid_generators)][0, 0])
-                state = U_inv @ state[:self.dimension]
-                state = np.pad(state, (0, 256 - len(state)))
+                gen = self.braid_generators[braid_idx % len(self.braid_generators)]
+                R_matrix = gen.reshape(d*d, d*d)
+                U_inv = expm(-1j * np.pi * R_matrix)
+                
+                limit = min(256, d*d)
+                state[:limit] = U_inv[:limit, :limit] @ state[:limit]
             
             # Measure quantum state (find maximum probability)
             byte_value = np.argmax(np.abs(state))
@@ -346,36 +355,30 @@ class GravitationalScrambler:
         data_array = np.frombuffer(plaintext, dtype=np.uint8)
         dim = 2 ** (self.N // 2)
         
-        # Create initial state
-        initial_state = np.zeros(dim, dtype=complex)
-        for idx, byte in enumerate(data_array):
-            initial_state[int(byte) % dim] += 1.0
-        initial_state = initial_state / np.linalg.norm(initial_state)
-        
-        # Apply gravitational scrambling (time evolution)
+        # Apply scrambling sequentially to each byte to preserve order
+        scrambled_states = []
         U_scramble = expm(-1j * self.hamiltonian * scrambling_time)
-        scrambled_state = U_scramble @ initial_state
         
-        # Compute OTOC for authentication
+        for byte in data_array:
+            initial_state = np.zeros(dim, dtype=complex)
+            initial_state[int(byte) % dim] = 1.0
+            scrambled_states.append(U_scramble @ initial_state)
+        
+        # Compute OTOC for authentication (using first state as proxy)
         V = np.random.rand(dim, dim) + 1j * np.random.rand(dim, dim)
-        V = (V + V.conj().T) / 2  # Hermitian
-        W = np.diag(scrambled_state)
+        V = (V + V.conj().T) / 2
+        W = np.diag(scrambled_states[0])
         
         otoc = self._compute_out_of_time_correlator(W, V, scrambling_time)
         
         # Compute quantum complexity
-        complexity = self._quantum_circuit_complexity(scrambled_state)
+        complexity = self._quantum_circuit_complexity(scrambled_states[0])
         
-        # Holographic encoding (bulk-boundary correspondence)
-        boundary_data = []
-        for i in range(0, len(scrambled_state), self.N):
-            chunk = scrambled_state[i:i+self.N]
-            if len(chunk) < self.N:
-                chunk = np.pad(chunk, (0, self.N - len(chunk)))
-            boundary_data.append(chunk)
+        # Holographic encoding (boundary data)
+        boundary_data = [complex_to_list(s) for s in scrambled_states]
         
         ciphertext = {
-            'scrambled_state': [complex_to_list(s) for s in boundary_data],
+            'scrambled_state': boundary_data,
             'scrambling_time': scrambling_time,
             'otoc': {'real': float(otoc.real), 'imag': float(otoc.imag)},
             'complexity': complexity,
@@ -394,16 +397,14 @@ class GravitationalScrambler:
         key_hash = hashlib.sha3_512(key).digest()
         scrambling_time = ciphertext['scrambling_time']
         
-        # Reconstruct scrambled state from boundary data
-        boundary_chunks = [list_to_complex(s) for s in ciphertext['scrambled_state']]
-        scrambled_state = np.concatenate(boundary_chunks)[:ciphertext['dimension']]
-        scrambled_state = scrambled_state / np.linalg.norm(scrambled_state)
+        # Reconstruct scrambled states
+        scrambled_states = [list_to_complex(s) for s in ciphertext['scrambled_state']]
+        dim = ciphertext['dimension']
         
-        # Verify OTOC signature
-        V = np.random.rand(len(scrambled_state), len(scrambled_state)) + \
-            1j * np.random.rand(len(scrambled_state), len(scrambled_state))
+        # Verify OTOC signature (using first state)
+        V = np.random.rand(dim, dim) + 1j * np.random.rand(dim, dim)
         V = (V + V.conj().T) / 2
-        W = np.diag(scrambled_state)
+        W = np.diag(scrambled_states[0])
         
         computed_otoc = self._compute_out_of_time_correlator(W, V, scrambling_time)
         stored_otoc = complex(ciphertext['otoc']['real'], ciphertext['otoc']['imag'])
@@ -411,17 +412,14 @@ class GravitationalScrambler:
         if abs(computed_otoc - stored_otoc) > 1e-6:
             raise ValueError("OTOC signature mismatch - authentication failed")
         
-        # Apply inverse scrambling (reverse time evolution)
+        # Apply inverse scrambling and decode plaintext
         U_unscramble = expm(1j * self.hamiltonian * scrambling_time)
-        unscrambled_state = U_unscramble @ scrambled_state
-        
-        # Decode plaintext
         plaintext_bytes = []
-        probabilities = np.abs(unscrambled_state) ** 2
-        sorted_indices = np.argsort(probabilities)[::-1]
         
-        for idx in sorted_indices[:ciphertext['original_length']]:
-            plaintext_bytes.append(idx % 256)
+        for state in scrambled_states:
+            unscrambled = U_unscramble @ state
+            byte_val = np.argmax(np.abs(unscrambled))
+            plaintext_bytes.append(int(byte_val) % 256)
         
         return bytes(plaintext_bytes)
 
@@ -512,7 +510,7 @@ def visualize_scrambling(cipher_state: dict):
 
 def main():
     st.set_page_config(
-        page_title="Nobel-Tier Cryptography",
+        page_title="Advanced Mathematical Cryptography",
         page_icon="🔬",
         layout="wide"
     )
