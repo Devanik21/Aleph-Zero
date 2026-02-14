@@ -1355,7 +1355,8 @@ def main():
     st.sidebar.markdown("---")
     with st.sidebar.expander("🔬 Deep Mathematical Foundation", expanded=False):
         st.markdown(r"""
-<div style="font-family: 'Inter', sans-serif; font-size: 0.85rem; color: #e0e0e0; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px;">
+
+    <div style="font-family: 'Inter', sans-serif; font-size: 0.85rem; color: #e0e0e0; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 5px;">
     <p style="color: #00ffcc; font-weight: bold;">1️⃣ TNHC-Ω (Topological)</p>
     <p>Braid group action on $B_n$ follows the Yang-Baxter Equation: $R_{12}R_{13}R_{23} = R_{23}R_{13}R_{12}$. Security is governed by the #P-hardness of the Jones Polynomial $V_L(t)$ and braid entropy.</p>
     
