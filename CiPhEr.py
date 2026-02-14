@@ -405,7 +405,7 @@ class TopologicalNeuralCipher:
             encrypted_states.append({
                 'state': complex_to_list(state_vec),
                 'braid_seq': braid_sequence.tolist(),
-                'entropy': self._compute_topological_entropy(state_vec)
+                'entropy': self._compute_topological_entropy(state_vec),
                 'entropy': self._compute_topological_entropy(state_vec)
             })
             
