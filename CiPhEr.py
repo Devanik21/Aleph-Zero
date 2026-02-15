@@ -72,30 +72,33 @@ class OmegaX_Engine:
         return rules
     
     def _precompute_entropy_tape(self) -> np.ndarray:
-        """Runs the Busy Beaver simulation ONCE to generate the Master Entropy Tape"""
-        # Run simulation for extended steps
+        """Runs the Busy Beaver simulation ONCE with NumPy array speeds"""
+        # Pre-allocate a large array instead of a defaultdict to act as the tape
+        # 200000 centers the head at 100000
+        tape_array = np.zeros(200000, dtype=int) 
+        head_pos = 100000
+        state = 0
+        
         for _ in range(self.entropy_pool_size):
-            val = self.tape[self.head_pos]
-            if (self.state, val) not in self.rules:
-                break # Halting
-            write, move, next_s = self.rules[(self.state, val)]
-            self.tape[self.head_pos] = write
-            self.head_pos += move
-            self.state = next_s
+            val = tape_array[head_pos]
+            if (state, val) not in self.rules:
+                break
+            write, move, next_s = self.rules[(state, val)]
+            tape_array[head_pos] = write
+            head_pos += move
+            state = next_s
             
-        # Convert tape to dense noise array
-        sorted_keys = sorted(self.tape.keys())
-        if not sorted_keys:
+        # Extract the active region of the tape
+        active_indices = np.where(tape_array != 0)[0]
+        if len(active_indices) == 0:
              return np.random.rand(self.entropy_pool_size)
              
-        min_k, max_k = sorted_keys[0], sorted_keys[-1]
-        raw_tape = [self.tape[k] for k in range(min_k, max_k + 1)]
+        min_k, max_k = active_indices[0], active_indices[-1]
+        raw_tape = tape_array[min_k : max_k + 1]
         
-        # Stretch to pool size using spectral method
         if len(raw_tape) < 2:
              return np.random.rand(self.entropy_pool_size)
              
-        # Fast spectral expansion
         fft_coeffs = np.fft.fft(raw_tape, n=self.entropy_pool_size)
         return np.abs(np.fft.ifft(fft_coeffs))
     
@@ -760,7 +763,9 @@ class GravitationalAIScrambler:
         
         # Apply scrambling
         adjusted_time = scrambling_time * (1 + action * 0.1)
-        U_scramble = expm(-1j * self.hamiltonian * adjusted_time)
+        evals, evecs = np.linalg.eigh(self.hamiltonian)
+        exp_evals = np.exp(-1j * evals * adjusted_time)
+        U_scramble = evecs @ np.diag(exp_evals) @ evecs.conj().T
         
         # Batch Scrambling
         # Create batch of basis states
@@ -819,7 +824,9 @@ class GravitationalAIScrambler:
             scrambling_time = ciphertext['scrambling_time']
             
             # Inverse time evolution
-            U_unscramble = expm(1j * self.hamiltonian * scrambling_time)
+            evals, evecs = np.linalg.eigh(self.hamiltonian)
+            exp_evals = np.exp(1j * evals * scrambling_time)
+            U_unscramble = evecs @ np.diag(exp_evals) @ evecs.conj().T
             unscrambled = U_unscramble @ state
             
             byte_val = int(np.argmax(np.abs(unscrambled))) % 256
