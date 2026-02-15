@@ -191,7 +191,7 @@ class RecursiveLatentSpace:
         # STAGE 8: Tetration Depth Escalation (D=10)
         # We push the recursion to 10 layers.
         # Complexity: 2 -> 16 -> 65536 -> ... (10 times) -> Universe-Breaking
-        self.max_depth = 10 
+        self.max_depth = 6 
         
         # --- HOLOGRAPHIC STREAM ARCHITECTURE ---
         # Lazy Atlas: Only compute physics for bytes we actually use.
