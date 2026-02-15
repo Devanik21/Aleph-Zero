@@ -240,11 +240,21 @@ class RecursiveLatentSpace:
                 # 3. Drift (The Chaos)
                 drift = self.genome.omega_engine.generate_omega_noise(32)
                 
+                # Pre-calc JSON for speed
+                json_params = {
+                    'Q': complex_to_list(Q) if np.iscomplexobj(Q) else Q.tolist(),
+                    'curvature': curvature,
+                    'drift': drift.tolist(),
+                    # original_shape is dynamic
+                    'target_dim': 32
+                }
+                
                 layer_stack.append({
                     'Q': Q,
                     'curvature': curvature,
                     'drift': drift,
-                    'locus': layer_locus
+                    'locus': layer_locus,
+                    'json_params': json_params
                 })
             
             self.manifold_atlas[byte_val] = layer_stack
@@ -285,15 +295,12 @@ class RecursiveLatentSpace:
             # 3. Drift (Addition)
             current_vector = current_vector + layer['drift'] * 0.05
             
-            # For extraction, we store the *exact* params used (from the atlas)
-            # We must serialize numpy arrays to list for JSON
-            recursive_params.append({
-                'Q': complex_to_list(layer['Q']) if np.iscomplexobj(layer['Q']) else layer['Q'].tolist(),
-                'curvature': layer['curvature'],
-                'drift': layer['drift'].tolist(),
-                'original_shape': vector.shape, # Store original for final reshape
-                'target_dim': 32
-            })
+            # USE PRE-CACHED PARAMS FOR ZERO-COPY SPEED
+            # We append the params that were pre-serialized in the atlas
+            # We only need to inject the original_shape dynamically
+            layer_param_copy = layer['json_params'].copy()
+            layer_param_copy['original_shape'] = vector.shape
+            recursive_params.append(layer_param_copy)
             
         return current_vector, recursive_params
 
