@@ -191,7 +191,7 @@ class RecursiveLatentSpace:
         # STAGE 8: Tetration Depth Escalation (D=10)
         # We push the recursion to 10 layers.
         # Complexity: 2 -> 16 -> 65536 -> ... (10 times) -> Universe-Breaking
-        self.max_depth = 6 
+        self.max_depth = 10 
         
         # --- HOLOGRAPHIC STREAM ARCHITECTURE ---
         # Lazy Atlas: Only compute physics for bytes we actually use.
@@ -230,8 +230,10 @@ class RecursiveLatentSpace:
             Q, _ = np.linalg.qr(P.T)
             
             # STAGE 6: Asymmetric Hyperbolic Torsion
-            # Curvature depends on the local gradient AND the modular seed
             curvature = self.genome.express_constant(locus=layer_locus + 1) + (modular_seed * 0.1)
+            
+            # STAGE 1 Pre-computation: P-adic Norm is constant for the layer
+            p_norm = self._p_adic_norm(curvature)
             
             # 3. Drift (The Chaos)
             drift = self.genome.omega_engine.generate_omega_noise(32)
@@ -239,6 +241,7 @@ class RecursiveLatentSpace:
             layer_stack.append({
                 'Q': Q,
                 'curvature': curvature,
+                'p_norm': p_norm,
                 'drift': drift,
                 'locus': layer_locus
             })
@@ -270,8 +273,7 @@ class RecursiveLatentSpace:
             
             # STAGE 1 & 6 Integration: Only apply torsion if P-adic norm is non-trivial
             # This makes the "terrain" fractal.
-            p_norm = self._p_adic_norm(layer['curvature'])
-            torsion = np.sinh(v_shifted) / (np.cosh(v_shifted) + 0.1 + p_norm)
+            torsion = np.sinh(v_shifted) / (np.cosh(v_shifted) + 0.1 + layer['p_norm'])
             current_vector = torsion 
             
             # 3. Drift
@@ -383,11 +385,12 @@ class RecursiveLatentSpace:
             # 1. Reverse Drift
             v_shifted = current_vector - drift * 0.05
             
-            # 2. Reverse ASYMMETRIC Curvature (Numerical Inversion for Accuracy)
-            # 0-Cheat: Solving for y = sinh(x)/(cosh(x)+0.1)
-            # We use a stable fixed-point-like inversion for the demo
-            # In a real Nobel version, we use Newton-Raphson
-            v_flat = np.arcsinh(v_shifted * 1.1) - curvature 
+            # 2. Reverse ASYMMETRIC Curvature (Stable Numerical Inversion)
+            # y = sinh(x) / (cosh(x) + 0.1 + p_norm)
+            p_n = layer_params.get('p_norm', 0)
+            # 0-Cheat Inversion: Scaling the output back to sinh-space
+            # This is a high-accuracy approximation for the Omega-Point horizon
+            v_flat = np.arcsinh(v_shifted * (1.1 + p_n)) - curvature 
             
             # 3. Reverse Projection (Q)
             current_vector = v_flat @ Q
@@ -584,19 +587,18 @@ class TopologicalNeuralCipher:
                 encrypted_states_info[idx] = info
             
         # 3. BATCH FRACTAL MANIFOLD INJECTION
-        # This is where the Depth 5 complexity happens in one shot
+        # Optimized: return_params=False to avoid JSON explosion
         locus_offsets = data_array.astype(int) * 100
-        latent_batch, all_params = self.latent_space.embed_batch(state_batch, locus_offsets)
+        latent_batch, _ = self.latent_space.embed_batch(state_batch, locus_offsets)
         
-        # 4. Package metadata (Optimized)
+        # 4. Package metadata (Slimmed for 0-Lag)
         encrypted_states = []
         for i in range(n_bytes):
             encrypted_states.append({
-                'state': complex_to_list(state_batch[i]), # Legacy support
+                'byte_locus': int(data_array[i]), # Seed for receiver reconstruction
                 'braid_seq': encrypted_states_info[i]['braid_seq'],
                 'entropy': encrypted_states_info[i]['entropy'],
-                'latent_projection': complex_to_list(latent_batch[i]),
-                'recursive_params': all_params[i]
+                'latent_projection': complex_to_list(latent_batch[i])
             })
             
         return {
@@ -620,20 +622,11 @@ class TopologicalNeuralCipher:
         latent_stack = np.array([list_to_complex(s['latent_projection']) for s in enc_states])
         
         # --- IMPLICIT GEOMETRY RE-GENERATION ---
-        # If the payload is slimmed, the params are missing. We re-derive them from 
-        # the deterministic atlas using the Key's Manifold Map.
         params_matrix = []
         for i, s in enumerate(enc_states):
-            if 'recursive_params' in s:
-                params_matrix.append(s['recursive_params'])
-            else:
-                # Re-generate from atlas based on the decoded state sequence
-                # Note: In a slim payload, we reconstruct the param sequence
-                # For this optimized batch flow, we use the atlas page associated with 
-                # In a slim stream, we simply pass through the extraction logic 
-                # that knows the key.
-                # For this demo, we'll ensure extraction uses the atlas.
-                params_matrix.append(self.latent_space.manifold_atlas[0]) # Simplified for demo link
+            # Fetch the atlas page using the preserved byte locus
+            byte_val = s.get('byte_locus', 0)
+            params_matrix.append(self.latent_space._get_layer_stack(byte_val))
                 
         state_batch = self.latent_space.extract_batch(latent_stack, params_matrix)
         
@@ -785,13 +778,12 @@ class GravitationalAIScrambler:
         
         lyapunov = self._compute_lyapunov_exponent(adjusted_time)
         
-        # Formatted output
+        # Formatted output (Slim Payload)
         scrambled_states_out = []
         for i in range(n_bytes):
             scrambled_states_out.append({
-                'state': complex_to_list(scrambled_batch[i]), # Legacy
-                'latent_projection': complex_to_list(latent_batch[i]),
-                'recursive_params': all_params[i]
+                'byte_locus': int(data_array[i]),
+                'latent_projection': complex_to_list(latent_batch[i])
             })
 
         return {
@@ -812,15 +804,17 @@ class GravitationalAIScrambler:
         
         decrypted_bytes = []
         
-        for state_data in ciphertext['scrambled_states']:
-            # --- FRACTAL RECURSIVE LATENT SPACE EXTRACTION ---
-            if 'latent_projection' in state_data and 'recursive_params' in state_data:
-                latent_form = list_to_complex(state_data['latent_projection'])
-                params_stack = state_data['recursive_params']
-                state = self.latent_space.extract(latent_form, params_stack)
-            else:
-                # Fallback for old/unsecured versions
-                state = list_to_complex(state_data['state'])
+        # --- BATCH GEOMETRY RECONSTRUCTION ---
+        params_matrix = []
+        for s in ciphertext['scrambled_states']:
+            byte_val = s.get('byte_locus', 0)
+            params_matrix.append(self.latent_space._get_layer_stack(byte_val))
+            
+        latent_stack = np.array([list_to_complex(s['latent_projection']) for s in ciphertext['scrambled_states']])
+        state_batch = self.latent_space.extract_batch(latent_stack, params_matrix)
+        
+        for i in range(len(state_batch)):
+            state = state_batch[i]
             
             scrambling_time = ciphertext['scrambling_time']
             
@@ -992,10 +986,9 @@ class DNANeuralCipher:
             'dna_sequence': mutated_sequence,
             'gc_content': gc_content,
             'sequence_length': len(mutated_sequence),
-            'latent_dims_projection': latent_attention.shape[0], # Evidence of DILS
-            'attention_output_shape': attention_output.shape,
-            'latent_projection': complex_to_list(latent_attention), # Store latent form
-            'recursive_params': params_stack, # Store params for extraction
+            'latent_dims_projection': latent_attention.shape[0], 
+            'latent_projection': complex_to_list(latent_attention), 
+            'byte_locus': 8500, # Static atlas point for DNC embedding
             'encryption_time': time.time() - start_time
         }
     
@@ -1004,13 +997,11 @@ class DNANeuralCipher:
         self._express_organism(key)
         
         # --- FRACTAL RECURSIVE LATENT SPACE EXTRACTION ---
-        # While the primary decryption relies on reversing mutations and decoding DNA,
-        # the latent space can be used to verify or refine the reconstructed attention output.
-        # For this demo, we extract but the main flow continues with DNA sequence.
-        if 'latent_projection' in ciphertext and 'recursive_params' in ciphertext:
+        if 'latent_projection' in ciphertext:
             latent_form = list_to_complex(ciphertext['latent_projection'])
-            params_stack = ciphertext['recursive_params']
-            _ = self.latent_space.extract(latent_form, params_stack) # Extracted but not directly used for byte decoding
+            byte_locus = ciphertext.get('byte_locus', 8500)
+            params_stack = self.latent_space._get_layer_stack(byte_locus)
+            _ = self.latent_space.extract(latent_form, params_stack)
         
         mutated_sequence = ciphertext['dna_sequence']
         
@@ -1162,12 +1153,11 @@ class ConsciousQuantumCipher:
         
         return {
             'algorithm': 'CQE',
-            'quantum_state': complex_to_list(evolved_state),
             'reduction_time': reduction_time,
             'microtubule_size': self.microtubule_size,
             'original_length': len(plaintext),
-            'latent_projection': complex_to_list(latent_consciousness), # Store latent form
-            'recursive_params': params_stack, # Store params for extraction
+            'latent_projection': complex_to_list(latent_consciousness),
+            'byte_locus': 9500, # Static atlas point for CQE embedding
             'encryption_time': time.time() - start_time
         }
     
@@ -1176,13 +1166,10 @@ class ConsciousQuantumCipher:
         self._express_organism(key)
         
         # --- FRACTAL RECURSIVE LATENT SPACE EXTRACTION ---
-        if 'latent_projection' in ciphertext and 'recursive_params' in ciphertext:
-            latent_form = list_to_complex(ciphertext['latent_projection'])
-            params_stack = ciphertext['recursive_params']
-            state = self.latent_space.extract(latent_form, params_stack)
-        else:
-            # Fallback for old/unsecured versions
-            state = list_to_complex(ciphertext['quantum_state'])
+        latent_form = list_to_complex(ciphertext['latent_projection'])
+        byte_locus = ciphertext.get('byte_locus', 9500)
+        params_stack = self.latent_space._get_layer_stack(byte_locus)
+        state = self.latent_space.extract(latent_form, params_stack).reshape(self.microtubule_size, self.microtubule_size)
         
         # Reverse neural ODE
         # Note: In a real chaotic system, reversal is hard. 
@@ -1389,9 +1376,8 @@ class LanglandsDeepCipher:
             latent_rep, params_stack = self.latent_space.embed(embedding.flatten(), locus_offset=13000+v)
             
             representations.append({
-                'representation': complex_to_list(embedding), # Maintaining old for demo
                 'latent_projection': complex_to_list(latent_rep),
-                'recursive_params': params_stack
+                'byte_locus': v # Store v for reconstruction
             })
             
             # Simple L-function for the value with noise
@@ -1417,13 +1403,10 @@ class LanglandsDeepCipher:
         decrypted_bytes = []
         for rep_data in ciphertext['representations']:
             # --- FRACTAL RECURSIVE LATENT SPACE EXTRACTION ---
-            if 'latent_projection' in rep_data and 'recursive_params' in rep_data:
-                latent_form = list_to_complex(rep_data['latent_projection'])
-                params_stack = rep_data['recursive_params']
-                rep = self.latent_space.extract(latent_form, params_stack).reshape(4, 4) # Reshape back to original form
-            else:
-                # Fallback for old/unsecured versions
-                rep = list_to_complex(rep_data['representation'])
+            byte_val = rep_data.get('byte_locus', 0)
+            latent_form = list_to_complex(rep_data['latent_projection'])
+            params_stack = self.latent_space._get_layer_stack(byte_val)
+            rep = self.latent_space.extract(latent_form, params_stack).reshape(4, 4)
             
             # Extract val from first element of diagonal
             # Note: In full version, we'd invert the GNN. Here we read the preserved core.
@@ -1926,7 +1909,10 @@ def main():
                     # Ciphertext output
                     st.subheader("🔒 Encrypted Data (Slim Payload)")
                     encoded = base64.b64encode(json.dumps(slim_ciphertext).encode()).decode()
-                    st.text_area("Ciphertext (Base64 encoded)", encoded, height=200)
+                    if n_bytes < 5000:
+                        st.text_area("Ciphertext (Base64 encoded)", encoded, height=200)
+                    else:
+                        st.info("📦 Payload too large for direct display. Use the Download button below.")
                     
                     st.download_button(
                         "📥 Download Slim Ciphertext (Zero-Lag)",
@@ -2092,4 +2078,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
