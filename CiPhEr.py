@@ -85,7 +85,7 @@ class RecursiveLatentSpace:
     """
     def __init__(self, genome: GenomicExpander):
         self.genome = genome
-        self.depth = 10 
+        self.depth = 20 
         self.block_size = 32 # Hardware optimized
         
     def _get_layer_params(self, byte_val: int, depth_idx: int):
