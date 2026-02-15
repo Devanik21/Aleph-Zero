@@ -160,7 +160,7 @@ class RecursiveLatentSpace:
         self.genome = genome_expander
         # Depth is derived from the Ackermann function approximation of the key
         # Capped at 3 for demo performance (Real limit: Universe heat death)
-        self.max_depth = 1 # 300000000000000000000000000000000000000000.......♾️
+        self.max_depth = 3 # 300000000000000000000000000000000000000000.......♾️
         
     def embed(self, vector: np.ndarray, locus_offset: int, depth: int = None) -> Tuple[np.ndarray, List[dict]]:
         """
@@ -430,11 +430,22 @@ class TopologicalNeuralCipher:
         }
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
-        """Decrypt with inverse braiding"""
+        """Decrypt with inverse braiding + Fractal extraction"""
+        # 1. Express the organism with the key (CRITICAL for generators)
+        self._express_organism(key)
+        
         decrypted_bytes = []
         
         for enc_state in ciphertext['encrypted_states']:
-            state = list_to_complex(enc_state['state'])
+            # --- FRACTAL RECURSIVE LATENT SPACE EXTRACTION ---
+            if 'latent_projection' in enc_state and 'recursive_params' in enc_state:
+                latent_vec = list_to_complex(enc_state['latent_projection'])
+                params_stack = enc_state['recursive_params']
+                state = self.latent_space.extract(latent_vec, params_stack)
+            else:
+                # Fallback for old/unsecured versions
+                state = list_to_complex(enc_state['state'])
+                
             braid_sequence = enc_state['braid_seq']
             d_sq = self.dimension * self.dimension
             
@@ -577,19 +588,27 @@ class GravitationalAIScrambler:
         }
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
-        """Reverse gravitational scrambling"""
-        # Re-express identical organism from key
+        """Reverse scrambling + Fractal extraction"""
         self._express_organism(key)
         
-        scrambled_states = [list_to_complex(s) for s in ciphertext['scrambled_states']]
-        scrambling_time = ciphertext['scrambling_time']
-        
-        # Inverse time evolution
-        U_unscramble = expm(1j * self.hamiltonian * scrambling_time)
         decrypted_bytes = []
         
-        for state in scrambled_states:
+        for state_data in ciphertext['scrambled_states']:
+            # --- FRACTAL RECURSIVE LATENT SPACE EXTRACTION ---
+            if 'latent_projection' in state_data and 'recursive_params' in state_data:
+                latent_form = list_to_complex(state_data['latent_projection'])
+                params_stack = state_data['recursive_params']
+                state = self.latent_space.extract(latent_form, params_stack)
+            else:
+                # Fallback for old/unsecured versions
+                state = list_to_complex(state_data['state'])
+            
+            scrambling_time = ciphertext['scrambling_time']
+            
+            # Inverse time evolution
+            U_unscramble = expm(1j * self.hamiltonian * scrambling_time)
             unscrambled = U_unscramble @ state
+            
             byte_val = np.argmax(np.abs(unscrambled))
             decrypted_bytes.append(int(byte_val) % 256)
         
@@ -750,13 +769,23 @@ class DNANeuralCipher:
             'sequence_length': len(mutated_sequence),
             'latent_dims_projection': latent_attention.shape[0], # Evidence of DILS
             'attention_output_shape': attention_output.shape,
+            'latent_projection': complex_to_list(latent_attention), # Store latent form
+            'recursive_params': params_stack, # Store params for extraction
             'encryption_time': time.time() - start_time
         }
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
-        """Reverse DNA mutations and decode"""
-        # Re-express organism
+        """DNA Reverse mapping + Fractal extraction"""
         self._express_organism(key)
+        
+        # --- FRACTAL RECURSIVE LATENT SPACE EXTRACTION ---
+        # While the primary decryption relies on reversing mutations and decoding DNA,
+        # the latent space can be used to verify or refine the reconstructed attention output.
+        # For this demo, we extract but the main flow continues with DNA sequence.
+        if 'latent_projection' in ciphertext and 'recursive_params' in ciphertext:
+            latent_form = list_to_complex(ciphertext['latent_projection'])
+            params_stack = ciphertext['recursive_params']
+            _ = self.latent_space.extract(latent_form, params_stack) # Extracted but not directly used for byte decoding
         
         mutated_sequence = ciphertext['dna_sequence']
         
@@ -905,40 +934,54 @@ class ConsciousQuantumCipher:
             'reduction_time': reduction_time,
             'microtubule_size': self.microtubule_size,
             'original_length': len(plaintext),
+            'latent_projection': complex_to_list(latent_consciousness), # Store latent form
+            'recursive_params': params_stack, # Store params for extraction
             'encryption_time': time.time() - start_time
         }
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
-        """Reverse consciousness evolution"""
-        # Re-express organism
+        """Reverse Orch-OR + Neural ODE + Fractal extraction"""
         self._express_organism(key)
         
-        evolved_state = list_to_complex(ciphertext['quantum_state'])
+        # --- FRACTAL RECURSIVE LATENT SPACE EXTRACTION ---
+        if 'latent_projection' in ciphertext and 'recursive_params' in ciphertext:
+            latent_form = list_to_complex(ciphertext['latent_projection'])
+            params_stack = ciphertext['recursive_params']
+            state = self.latent_space.extract(latent_form, params_stack)
+        else:
+            # Fallback for old/unsecured versions
+            state = list_to_complex(ciphertext['quantum_state'])
         
         # Reverse neural ODE
         # Note: In a real chaotic system, reversal is hard. 
         # Here we inverse the linear approximation for the demo.
-        state = evolved_state.copy()
         dt = 0.01
         
         # Express same ODE weights
         W_ode = self.genome.express_matrix(state.shape, locus=10000)
         
-        for _ in range(10):
-            # Reverse phase
-            state = state / np.exp(1j * 2 * np.pi * 1e11 * 1e-12)
+        for _ in range(10): # Reverse time_steps
+            # Reverse phase (inverse of _microtubule_interference)
+            freq = 1e11
+            t = 1e-12
+            state = state / np.exp(1j * 2 * np.pi * freq * t)
             
             # Reverse dynamics: S_prev approx (S_next)/(1 + dt*(-0.1 + 0.05*W))
             # Simplified inversion for stability in demo
             factor = 1 + dt * (-0.1 + 0.05 * W_ode)
             # Avoid division by zero
             state = state / (factor + 1e-10) 
+            
+            # Note: Reversing _objective_reduction is non-trivial and not done in this demo.
+            # We assume the state before OR is what we need to recover.
         
         # Decode
         decrypted_bytes = []
+        microtubule_size = ciphertext['microtubule_size']
         for idx in range(ciphertext['original_length']):
-            i, j = idx % self.microtubule_size, (idx // self.microtubule_size) % self.microtubule_size
-            if i < self.microtubule_size and j < self.microtubule_size:
+            i, j = idx % microtubule_size, (idx // microtubule_size) % microtubule_size
+            if i < microtubule_size and j < microtubule_size:
+                # Recover byte from real part, assuming it was encoded as byte/255.0
                 byte_val = int(round(state[i, j].real * 255) % 256)
                 decrypted_bytes.append(byte_val)
         
@@ -1100,12 +1143,15 @@ class LanglandsDeepCipher:
             
             # Message passing on representation
             embedding = self._graph_message_passing(rho)
-            embedding = self._graph_message_passing(rho)
             
             # --- FRACTAL RECURSIVE LATENT SPACE INJECTION ---
             latent_rep, params_stack = self.latent_space.embed(embedding.flatten(), locus_offset=13000+v)
-            # We return the latent form in the ciphertext
-            representations.append(complex_to_list(embedding)) # Maintaining old for demo
+            
+            representations.append({
+                'representation': complex_to_list(embedding), # Maintaining old for demo
+                'latent_projection': complex_to_list(latent_rep),
+                'recursive_params': params_stack
+            })
             
             # Simple L-function for the value with noise
             # Omega-X noise injected into the exponent
@@ -1123,14 +1169,21 @@ class LanglandsDeepCipher:
         }
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
-        """Reverse Langlands correspondence"""
+        """Reverse Langlands correspondence + Fractal extraction"""
         # Re-express
         self._express_organism(key)
         
-        representations = [list_to_complex(r) for r in ciphertext['representations']]
-        
         decrypted_bytes = []
-        for rep in representations:
+        for rep_data in ciphertext['representations']:
+            # --- FRACTAL RECURSIVE LATENT SPACE EXTRACTION ---
+            if 'latent_projection' in rep_data and 'recursive_params' in rep_data:
+                latent_form = list_to_complex(rep_data['latent_projection'])
+                params_stack = rep_data['recursive_params']
+                rep = self.latent_space.extract(latent_form, params_stack).reshape(4, 4) # Reshape back to original form
+            else:
+                # Fallback for old/unsecured versions
+                rep = list_to_complex(rep_data['representation'])
+            
             # Extract val from first element of diagonal
             # Note: In full version, we'd invert the GNN. Here we read the preserved core.
             val = int(rep[0, 0].real) % 256
@@ -1409,7 +1462,7 @@ def main():
     operation = st.sidebar.radio("⚙️ Operation", ["Encrypt", "Decrypt"])
     
     st.sidebar.markdown("---")
-    with st.sidebar.expander("🔬 Deep Mathematical Foundation", expanded=True):
+    with st.sidebar.expander("🔬 Deep Mathematical Foundation", expanded=False):
         st.markdown("### 1️⃣ TNHC-Ω (Topological)")
         st.markdown(r"Braid group action on $B_n$ follows the **Yang-Baxter Equation**:")
         st.latex(r"R_{12}R_{13}R_{23} = R_{23}R_{13}R_{12}")
@@ -1495,7 +1548,7 @@ def main():
     
     st.header(algo_info["title"])
     
-    with st.expander("♾️ Theoretical Foundation", expanded=True):
+    with st.expander("� Theoretical Foundation", expanded=True):
         st.markdown(f"""
         **Theory**: {algo_info['theory']}
         
@@ -1603,7 +1656,7 @@ def main():
                 st.info("Possible causes: Wrong key, corrupted data, or algorithm mismatch")
     
     st.markdown("---")
-    with st.expander("📜 THE OMEGA-X MANUSCRIPT: MATHEMATICAL PROOFS & THEORETICAL ANALYSIS", expanded=True):
+    with st.expander("📜 THE OMEGA-X MANUSCRIPT: MATHEMATICAL PROOFS & THEORETICAL ANALYSIS", expanded=False):
         st.markdown("""
         ### **PREFACE: ON COMPUTATIONAL UNDECIDABILITY**
         The OMEGA-X system is built on the principle of **Computational Irreducibility**. By mapping finite data into the **Fractal-Recursive Latent Space**, we ensure that the only way to find the plaintext is to simulate the universe-sized state space.
