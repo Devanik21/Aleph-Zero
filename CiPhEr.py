@@ -197,9 +197,11 @@ class RecursiveLatentSpace:
         self.max_depth = 10 
         
         # --- HOLOGRAPHIC STREAM ARCHITECTURE ---
-        # Lazy Atlas: Only compute physics for bytes we actually use.
-        # This makes the "Real World" speed instantaneous for most messages.
         self.manifold_atlas = {} 
+        
+        # NEW: Compile the entire geometry instantly upon key expression.
+        # This executes the heavy QR decompositions once at Key setup, not during streaming.
+        self._precompute_entire_atlas()
         
     def _p_adic_norm(self, x: float, p: int = 251) -> float:
         """STAGE 1: P-adic Valuation for non-Archimedean distance"""
@@ -211,46 +213,47 @@ class RecursiveLatentSpace:
             val //= p
         return norm
 
+    def _precompute_entire_atlas(self):
+        """Pre-computes all 256 possible byte manifolds at initialization for O(1) streaming."""
+        for byte_val in range(256):
+            locus_base = byte_val * 100
+            layer_stack = []
+            current_locus = locus_base
+            
+            # STAGE 5: Langlands Correspondence Mapping
+            modular_seed = self.genome.express_constant(locus=current_locus)
+            
+            for d in range(self.max_depth, 0, -1):
+                layer_locus = current_locus + (d * 100000)
+                
+                # Expansion parameters (32x32 fixed holographic width)
+                P = self.genome.express_matrix((32, 32), locus=layer_locus)
+                Q, _ = np.linalg.qr(P.T)
+                
+                # STAGE 6: Asymmetric Hyperbolic Torsion
+                curvature = self.genome.express_constant(locus=layer_locus + 1) + (modular_seed * 0.1)
+                
+                # STAGE 1 Pre-computation: P-adic Norm is constant for the layer
+                p_norm = self._p_adic_norm(curvature)
+                
+                # 3. Drift (The Chaos)
+                drift = self.genome.omega_engine.generate_omega_noise(32)
+                
+                layer_stack.append({
+                    'Q': Q,
+                    'curvature': curvature,
+                    'p_norm': p_norm,
+                    'drift': drift,
+                    'locus': layer_locus
+                })
+                
+            self.manifold_atlas[byte_val] = layer_stack
+            
     def _get_layer_stack(self, byte_val: int):
-        """Lazy retrieval/computation of manifold layers"""
-        byte_val = int(byte_val) % 256
-        if byte_val in self.manifold_atlas:
-            return self.manifold_atlas[byte_val]
-            
-        locus_base = byte_val * 100
-        layer_stack = []
-        current_locus = locus_base
-        
-        # STAGE 5: Langlands Correspondence Mapping
-        # We map the byte to a modular form coefficient
-        modular_seed = self.genome.express_constant(locus=current_locus)
-        
-        for d in range(self.max_depth, 0, -1):
-            layer_locus = current_locus + (d * 100000)
-            
-            # Expansion parameters (32x32 fixed holographic width)
-            P = self.genome.express_matrix((32, 32), locus=layer_locus)
-            Q, _ = np.linalg.qr(P.T)
-            
-            # STAGE 6: Asymmetric Hyperbolic Torsion
-            curvature = self.genome.express_constant(locus=layer_locus + 1) + (modular_seed * 0.1)
-            
-            # STAGE 1 Pre-computation: P-adic Norm is constant for the layer
-            p_norm = self._p_adic_norm(curvature)
-            
-            # 3. Drift (The Chaos)
-            drift = self.genome.omega_engine.generate_omega_noise(32)
-            
-            layer_stack.append({
-                'Q': Q,
-                'curvature': curvature,
-                'p_norm': p_norm,
-                'drift': drift,
-                'locus': layer_locus
-            })
-            
-        self.manifold_atlas[byte_val] = layer_stack
-        return layer_stack
+        """O(1) Holographic Retrieval of precomputed manifold layers"""
+        # The math is mathematically preserved but executed at Key-Time.
+        # Streaming is now instantaneous.
+        return self.manifold_atlas[int(byte_val) % 256]
 
     def embed(self, vector: np.ndarray, locus_offset: int, depth: int = None) -> Tuple[np.ndarray, List[dict]]:
         """
