@@ -1852,8 +1852,12 @@ def main():
         if encrypt_btn and plaintext and key:
             with st.spinner(f"Applying {algo_info['name']} encryption..."):
                 try:
+                    # Capture the length before encryption for the benchmark calculation
+                    data_to_encrypt = plaintext.encode('utf-8')
+                    n_bytes = len(data_to_encrypt)
+                    
                     ciphertext = cipher.encrypt(
-                        plaintext.encode('utf-8'),
+                        data_to_encrypt,
                         key.encode('utf-8')
                     )
                     
@@ -1870,10 +1874,12 @@ def main():
                             </div>
                         """, unsafe_allow_html=True)
                     with bench_cols[1]:
+                        # n_bytes is now correctly defined here
+                        speed_kb = (n_bytes / (ciphertext['encryption_time'] + 1e-6)) / 1024
                         st.markdown(f"""
                         <div class="metric-card" style="border-color: #00ffcc;">
                             <p style='color: #00ffcc; font-size: 0.9rem; margin: 0;'>⚡ HOLOGRAPHIC SPEED</p>
-                            <p style='color: white; font-size: 1.5rem; font-weight: bold; margin: 0;'>{n_bytes / (ciphertext['encryption_time'] + 1e-6) / 1024:.2f} KB/s</p>
+                            <p style='color: white; font-size: 1.5rem; font-weight: bold; margin: 0;'>{speed_kb:.2f} KB/s</p>
                             <p style='color: #888; font-size: 0.7rem;'>Zero-Lag Vectorization</p>
                         </div>
                         """, unsafe_allow_html=True)
