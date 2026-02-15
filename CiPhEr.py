@@ -303,47 +303,67 @@ class RecursiveLatentSpace:
     def embed_batch(self, vector_stack: np.ndarray, locus_offsets: np.ndarray) -> Tuple[np.ndarray, List[List[dict]]]:
         """
         BATCH HOLOGRAPHIC EMBEDDING (Revolutionary SHA-256 Speed).
-        vector_stack: (N, Dim) array of states.
-        locus_offsets: (N,) array of offsets derived from bytes.
+        True Vectorization via Byte Grouping.
+        Complexity: O(256 * Depth) + O(N Data Copy)
         """
         n_samples = vector_stack.shape[0]
         dim = vector_stack.shape[1]
         
-        # Standardize dimension to 32 (Universe Stream Width)
+        # Standardize dimension to 32
         if dim < 32:
-            processed_stack = np.pad(vector_stack, ((0, 0), (0, 32 - dim)), 'constant')
+            final_stack = np.pad(vector_stack, ((0, 0), (0, 32 - dim)), 'constant')
         else:
-            processed_stack = vector_stack[:, :32]
+            final_stack = vector_stack[:, :32].copy() # Copy to avoid stride issues
             
-        # Determine atlas indices for the entire batch
         byte_vals = (locus_offsets // 100) % 256
         
-        all_recursive_params = []
-        final_stack = processed_stack.copy()
+        # Pre-allocate result container for params
+        # We can't easily vectorize the list-of-dicts creation in numpy, 
+        # but masking helps.
+        # For the params, we just use the atlas reference since they are identical for same byte.
+        # This saves massive memory too.
+        all_recursive_params = [None] * n_samples
         
-        # We process each sample. While this is a loop, the individual operations 
-        # inside are now simple lookups and matrix-vector products.
-        for i in range(n_samples):
-            byte_val = byte_vals[i]
-            layer_stack = self.manifold_atlas[byte_val]
+        # KEY OPTIMIZATION: Loop over unique 256 possible bytes, not N samples
+        unique_bytes, indices = np.unique(byte_vals, return_inverse=True)
+        
+        for u_byte in unique_bytes:
+            # Mask for current byte
+            mask = (byte_vals == u_byte)
             
-            sample_vector = final_stack[i]
-            sample_params = []
+            # Get pre-computed physics
+            layer_stack = self.manifold_atlas[u_byte]
             
+            # Get subset of vectors
+            sub_stack = final_stack[mask]
+            
+            # Apply 5 layers of Manifold Projection (Vectorized over sub_stack)
             for layer in layer_stack:
-                # 1. Expansion
-                sample_vector = sample_vector @ layer['Q'].T
+                # 1. Expansion: v @ Q.T
+                sub_stack = sub_stack @ layer['Q'].T
+                
                 # 2. Curvature
-                sample_vector = np.tanh(sample_vector + layer['curvature'])
-                # 3. Drift
-                sample_vector = sample_vector + layer['drift'] * 0.05
+                sub_stack = np.tanh(sub_stack + layer['curvature'])
                 
-                param_copy = layer['json_params'].copy()
-                param_copy['original_shape'] = (dim,)
-                sample_params.append(param_copy)
+                # 3. Drift (Broadcasting)
+                sub_stack = sub_stack + layer['drift'] * 0.05
                 
-            final_stack[i] = sample_vector
-            all_recursive_params.append(sample_params)
+            # Update final stack in place
+            final_stack[mask] = sub_stack
+            
+            # Assign params efficiently (Reference copy)
+            # We construct the params list ONCE for this byte
+            byte_params = []
+            for layer in layer_stack:
+                p = layer['json_params'].copy()
+                p['original_shape'] = (dim,)
+                byte_params.append(p)
+            
+            # Broadcast params to all matching indices
+            # List comprehension with mask is still Python speed, but better than dict creation
+            # Optimization: We assign to the list indices involved
+            for idx in np.where(mask)[0]:
+                all_recursive_params[idx] = byte_params
             
         return final_stack, all_recursive_params
 
@@ -545,21 +565,42 @@ class TopologicalNeuralCipher:
         # We process the entire message as a single tensor (N, d_sq)
         # Starting with the basis state for each byte
         state_batch = np.zeros((n_bytes, d_sq), dtype=complex)
-        for i, byte_val in enumerate(data_array):
-            state_batch[i, int(byte_val) % d_sq] = 1.0
+        
+        # Fast one-hot initialization
+        rows = np.arange(n_bytes)
+        cols = data_array % d_sq
+        state_batch[rows, cols] = 1.0
             
-        # Apply pre-baked Unitary transforms in parallel
-        # Note: In a fully optimized version, we'd use Einstein summation or block mult
-        # For this version, we use the bank lookups which is still O(1) per byte
-        encrypted_states_info = []
-        for i, byte_val in enumerate(data_array):
-            U, braid_seq = self.braid_bank[int(byte_val) % 256]
-            state_batch[i] = U @ state_batch[i]
+        # Apply pre-baked Unitary transforms in parallel (Byte-Grouped)
+        # O(N) -> O(256) Matrix Mults
+        
+        encrypted_states_info = [None] * n_bytes
+        
+        unique_bytes = np.unique(data_array)
+        
+        for u_byte in unique_bytes:
+            mask = (data_array == u_byte)
+            U, braid_seq = self.braid_bank[int(u_byte) % 256]
             
-            encrypted_states_info.append({
+            # Apply U to the subset
+            # (SubBatch, d_sq) @ U.T (Since U is unitary, U^-1 = U.dag, but here we forward transform)
+            # Standard: v_new = U @ v. 
+            # Vectorized: V_new = V @ U.T
+            state_batch[mask] = state_batch[mask] @ U.T
+            
+            # Cache metadata (Reference copy)
+            # Entropy is identical for identical start state & identical unitary
+            # So compute ONCE
+            sample_entropy = self._compute_topological_entropy(state_batch[np.where(mask)[0][0]])
+            
+            info = {
                 'braid_seq': braid_seq,
-                'entropy': self._compute_topological_entropy(state_batch[i])
-            })
+                'entropy': sample_entropy
+            }
+            
+            # Assign to all
+            for idx in np.where(mask)[0]:
+                encrypted_states_info[idx] = info
             
         # 3. BATCH FRACTAL MANIFOLD INJECTION
         # This is where the Depth 5 complexity happens in one shot
