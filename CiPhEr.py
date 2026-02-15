@@ -270,20 +270,19 @@ class RecursiveLatentSpace:
              
         recursive_params = []
         for layer in layer_stack:
-            # 1. Expansion
-            current_vector = current_vector @ layer['Q'].T
-            
-            # 2. ASYMMETRIC MANIFOLD TWIST (Leaky-Log-Hyperbolic) + P-adic Metric
-            # 0-Cheat: We actually apply the non-linear shift
-            v_shifted = current_vector + layer['curvature']
-            
-            # STAGE 1 & 6 Integration: Only apply torsion if P-adic norm is non-trivial
-            # This makes the "terrain" fractal.
-            torsion = np.sinh(v_shifted) / (np.cosh(v_shifted) + 0.1 + layer['p_norm'])
-            current_vector = torsion 
-            
-            # 3. Drift
-            current_vector = current_vector + layer['drift'] * 0.05
+                # v @ Q.T
+                sub_stack = sub_stack @ layer['Q'].T
+                
+                # Asymmetric Twist with P-adic Torsion
+                v_s = sub_stack + layer['curvature']
+                
+                # SPEED FIX: Use the O(1) Precomputed p_norm from the Atlas!
+                p_norm = layer['p_norm'] 
+                
+                sub_stack = np.sinh(v_s) / (np.cosh(v_s) + 0.1 + p_norm)
+                
+                # Drift
+                sub_stack = sub_stack + layer['drift'] * 0.05
             
             # Serialize for output ONLY when called, not during precompute
             recursive_params.append({
@@ -459,7 +458,7 @@ class TopologicalNeuralCipher:
         self.current_key = key
         
     def _get_braid_data(self, byte_val: int):
-        """Lazy braid computation"""
+        """Lazy braid computation with memory-efficient matrix accumulation"""
         byte_val = int(byte_val) % 256
         if byte_val in self.braid_bank:
             return self.braid_bank[byte_val]
@@ -467,20 +466,16 @@ class TopologicalNeuralCipher:
         d_sq = self.dimension * self.dimension
         # 1. Neural Prediction
         temp_state = np.zeros(d_sq, dtype=complex)
-        temp_state[byte_val % d_sq] = 1.0
+        temp_state[byte_val] = 1.0 # byte_val % d_sq is redundant since max is 255 and d_sq is 256
+        
         neural_probs = self._neural_forward(temp_state.reshape(self.dimension, self.dimension))
         braid_sequence = np.random.choice(len(self.braid_generators), size=5, p=neural_probs)
         
-        # 2. Sequential Braid Application (Direct Product)
-        # STAGE 3: Virtual Non-Abelian Anyon Braiding
-        # We simulate the fusion rules of Fibonacci Anyons
-        # T (Twist) and F (Fusion) moves are encoded in the generators.
+        # 2. Sequential Braid Application
         U_total = np.eye(d_sq, dtype=complex)
         for braid_idx in braid_sequence:
-            gen = self.braid_generators[braid_idx]
-            # In Non-Abelian theory, AB != BA. The order matters infinitely.
-            # We apply the generator as a "Worldline Exchange"
-            U_total = gen.reshape(d_sq, d_sq) @ U_total
+            gen = self.braid_generators[braid_idx].reshape(d_sq, d_sq)
+            U_total = gen @ U_total # Avoid in-place object recreation
             
         res = (U_total, braid_sequence.tolist())
         self.braid_bank[byte_val] = res
@@ -546,11 +541,14 @@ class TopologicalNeuralCipher:
         return x
     
     def _compute_topological_entropy(self, state: np.ndarray) -> float:
-        """Compute von Neumann entropy"""
-        rho = np.outer(state, state.conj())
-        eigenvalues = np.linalg.eigvalsh(rho)
-        eigenvalues = eigenvalues[eigenvalues > 1e-10]
-        return -np.sum(eigenvalues * np.log2(eigenvalues + 1e-10))
+        """O(N) Fast Entropy - Bypasses O(N^3) LAPACK Thread Thrashing"""
+        # Since rho = |state><state| is a pure rank-1 state, the sole non-zero 
+        # eigenvalue mathematically equals the squared norm of the state vector.
+        squared_norm = np.sum(np.abs(state) ** 2)
+        
+        if squared_norm > 1e-10:
+            return -float(squared_norm * np.log2(squared_norm + 1e-10))
+        return 0.0
     
     def encrypt(self, plaintext: bytes, key: bytes) -> dict:
         """Living Cipher Encryption: Vectorized Zero-Lag Execution"""
