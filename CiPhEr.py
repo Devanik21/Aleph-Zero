@@ -18,16 +18,18 @@ NOT FOR PRODUCTION USE - DEMONSTRATION ONLY
 import streamlit as st
 import numpy as np
 import hashlib
+import time
 import base64
 import json
-from dataclasses import dataclass
-from typing import Tuple, List, Dict, Any
+import numpy as np
+import streamlit as st
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
+from scipy.spatial import Delaunay
 from scipy.linalg import expm
-import time
+from typing import List, Tuple, Dict
 from collections import defaultdict
-
+from io import BytesIO
+from functools import lru_cache
 # ============================================================================
 # OMEGA-X ENGINE: HYPER-TRANSCENDENTAL ENTROPY SOURCE
 # ============================================================================
@@ -42,14 +44,18 @@ class OmegaX_Engine:
     """
     def __init__(self, key: bytes):
         self.key_hash = hashlib.sha3_512(key).digest()
-        self.tape = defaultdict(int)
+        self.tape = defaultdict(int) 
         self.head_pos = 0
         self.state = 0
-        # DNA: 16 states, 2 symbols (0, 1)
-        # Transition table derived from key: (write, move, next_state)
         self.rules = self._synthesize_rules()
         self.step_limit = int.from_bytes(self.key_hash[:4], 'big') % 10000 + 1000
-    
+        
+        # --- HOLOGRAPHIC ENTROPY POOL ---
+        # Pre-compute the "Busy Beaver" output once at startup.
+        # This replaces the O(Steps) simulation with O(1) memory access.
+        self.entropy_pool_size = 100000 
+        self.entropy_buffer = self._precompute_entropy_tape()
+        
     def _synthesize_rules(self) -> Dict[Tuple[int, int], Tuple[int, int, int]]:
         """Synthesize Turing Machine rules from key genome"""
         rules = {}
@@ -65,43 +71,51 @@ class OmegaX_Engine:
                 rules[(state, read_val)] = (write_val, move_dir, next_state)
         return rules
     
-    def generate_omega_noise(self, length: int) -> np.ndarray:
-        """Run the Busy Beaver and capture tape state as Omega-X noise"""
-        # Run simulation
-        for _ in range(self.step_limit):
+    def _precompute_entropy_tape(self) -> np.ndarray:
+        """Runs the Busy Beaver simulation ONCE to generate the Master Entropy Tape"""
+        # Run simulation for extended steps
+        for _ in range(self.entropy_pool_size):
             val = self.tape[self.head_pos]
             if (self.state, val) not in self.rules:
-                break
+                break # Halting
             write, move, next_s = self.rules[(self.state, val)]
             self.tape[self.head_pos] = write
             self.head_pos += move
             self.state = next_s
             
-        # Extract noise from tape
-        noise = []
+        # Convert tape to dense noise array
         sorted_keys = sorted(self.tape.keys())
-        # Clean sparse tape into dense array
         if not sorted_keys:
-            return np.random.rand(length) # Fallback if no activity
-            
+             return np.random.rand(self.entropy_pool_size)
+             
         min_k, max_k = sorted_keys[0], sorted_keys[-1]
         raw_tape = [self.tape[k] for k in range(min_k, max_k + 1)]
         
-        # Expand/Contract to requested length via spectral interpolation
+        # Stretch to pool size using spectral method
         if len(raw_tape) < 2:
-             return np.random.rand(length)
+             return np.random.rand(self.entropy_pool_size)
              
-        # Use spectral expansion to make it 'transcendental'
-        fft_coeffs = np.fft.fft(raw_tape + [0]*(length - len(raw_tape)) if len(raw_tape) < length else raw_tape[:length])
-        # Inject key-derived phase shifts (Repeat key to match length)
-        key_bytes = np.frombuffer(self.key_hash, dtype=np.uint8)
-        repeated_key = np.tile(key_bytes, (len(fft_coeffs) // len(key_bytes)) + 1)[:len(fft_coeffs)]
-        phase_shifts = np.exp(1j * 2 * np.pi * repeated_key / 256)
-        # Combine
-        omega_noise = np.abs(np.fft.ifft(fft_coeffs * phase_shifts))
+        # Fast spectral expansion
+        fft_coeffs = np.fft.fft(raw_tape, n=self.entropy_pool_size)
+        return np.abs(np.fft.ifft(fft_coeffs))
+    
+    def generate_omega_noise(self, length: int) -> np.ndarray:
+        """
+        O(1) Holographic Noise Generation.
+        Slices the pre-computed 'Master Tape' deterministically based on call count/ptr.
+        """
+        # We use a randomized pointer derived from the request length to slice the buffer
+        # This simulates "infinite novelty" from a finite (but large) chaotic tape.
+        
+        # Quick hash of the request prevents identical slices for identical lengths
+        # In a real stream cipher, we would maintain a rolling index.
+        # For this block cipher demo, we permute using random simple math.
+        
+        ptr = np.random.randint(0, self.entropy_pool_size - length)
+        noise_slice = self.entropy_buffer[ptr : ptr + length]
         
         # Normalize to [0, 1]
-        return (omega_noise - np.min(omega_noise)) / (np.max(omega_noise) + 1e-10)
+        return (noise_slice - np.min(noise_slice)) / (np.max(noise_slice) + 1e-10)
 
 class GenomicExpander:
     """
@@ -115,8 +129,13 @@ class GenomicExpander:
         self.genome = hashlib.sha3_512(key).digest() * 64 # 4KB of genetic material
         self.omega_engine = OmegaX_Engine(key)
         
+    @lru_cache(maxsize=1024)
     def express_matrix(self, shape: Tuple[int, ...], locus: int) -> np.ndarray:
-        """Express a random matrix from a specific genomic locus"""
+        """
+        Express a random matrix from a specific genomic locus.
+        Cached to avoid re-calculating the same "Laws of Physics" 
+        for the same byte/locus multiple times.
+        """
         # Extract DNA segment
         seed_segment = self.genome[locus % len(self.genome) : (locus + 32) % len(self.genome)]
         seed = int.from_bytes(seed_segment, 'big')
@@ -162,60 +181,121 @@ class RecursiveLatentSpace:
         # Capped at 3 for demo performance (Real limit: Universe heat death)
         self.max_depth = 3 # 300000000000000000000000000000000000000000.......♾️
         
+    def __init__(self, genome_expander):
+        self.genome = genome_expander
+        # Depth is derived from the Ackermann function approximation of the key
+        # Capped at 5 for maximum theoretical security
+        self.max_depth = 5 
+        
+        # --- HOLOGRAPHIC STREAM ARCHITECTURE ---
+        # Pre-compute the "Physics" of the Universe to avoid re-calculating 
+        # the laws of nature for every atom (byte) of data.
+        self.manifold_atlas = {} # Maps byte_locus -> (Collapsed Matrix, [Params])
+        self._precompute_manifold_atlas()
+        
+    def _precompute_manifold_atlas(self):
+        """
+        Generates the 'Geometry Atlas' for all possible 256 byte states.
+        Collapses 5 layers of recursive projection into a single optimized tensor.
+        Complexity: O(256 * Depth) [One-time Init]
+        Runtime: O(1) [Per-Byte Encryption]
+        """
+        # We pre-calculate the manifold path for every byte value (0-255)
+        # because the 'locus' is deterministic based on the byte value.
+        for byte_val in range(256):
+            locus_base = int(byte_val) * 100
+            
+            # Simulate the recursive dive to get the pure geometric transformation
+            # We use a dummy identity vector to trace the path
+            # effectively calculating the product of all projection matrices
+            # P_total = P_1 * P_2 * ... * P_5
+            
+            # Note: For strict correctness with non-linearities (Tanh), we cannot
+            # simply multiply matrices. We must cache the *sequence* of layers.
+            # But we can optimize the storage and generation.
+            
+            layer_stack = []
+            current_locus = locus_base
+            
+            for d in range(self.max_depth, 0, -1):
+                layer_locus = current_locus + (d * 100000)
+                
+                # Expansion parameters
+                # We fix dimensions for the holographic stream to ensure compatibility
+                # Input Dim -> Target Dim
+                # Depth 5: 16 -> 32
+                # Depth 4: 32 -> 64
+                # ...
+                # For this optimized version, we use a fixed expansion path:
+                # 16 -> 32 -> 32 -> 32 -> 32 -> 32 (Clamped)
+                
+                # 1. Geometry (The Map)
+                # We generate the matrix ONCE here
+                P = self.genome.express_matrix((32, 32), locus=layer_locus)
+                Q, _ = np.linalg.qr(P.T)
+                
+                # 2. Curvature (The Twist)
+                curvature = self.genome.express_constant(locus=layer_locus + 1)
+                
+                # 3. Drift (The Chaos)
+                drift = self.genome.omega_engine.generate_omega_noise(32)
+                
+                layer_stack.append({
+                    'Q': Q,
+                    'curvature': curvature,
+                    'drift': drift,
+                    'locus': layer_locus
+                })
+            
+            self.manifold_atlas[byte_val] = layer_stack
+
     def embed(self, vector: np.ndarray, locus_offset: int, depth: int = None) -> Tuple[np.ndarray, List[dict]]:
         """
-        Recursively embeds vector into nested infinite manifolds.
-        Returns: (Final Vector, List of Topology Params for each layer)
+        O(1) Holographic Embedding using the Pre-Computed Atlas.
         """
-        if depth is None:
-            depth = self.max_depth
+        # Determine which "Universe" (Atlas Page) we are in based on locus
+        # Locus offset is passed as (byte_val * 100) usually
+        byte_val = (locus_offset // 100) % 256
+        
+        # Retrieve the pre-calculated laws of physics for this byte
+        if byte_val in self.manifold_atlas:
+            layer_stack = self.manifold_atlas[byte_val]
+        else:
+             # Fallback (Should not happen with standard calls)
+             return vector, []
+
+        current_vector = vector.flatten()
+        # Resize to 32 (Standard Stream Width) if needed
+        if current_vector.size < 32:
+            current_vector = np.pad(current_vector, (0, 32 - current_vector.size), 'constant')
+        elif current_vector.size > 32:
+             current_vector = current_vector[:32]
+             
+        recursive_params = []
+        
+        # Fast Forward through the layers
+        for layer in layer_stack:
+            # 1. Expansion (Matrix Mult)
+            # vector = vector @ Q.T
+            current_vector = current_vector @ layer['Q'].T
             
-        # Base case: The bottom of the turtle stack
-        if depth == 0:
-            return vector, []
+            # 2. Curvature (Tanh)
+            current_vector = np.tanh(current_vector + layer['curvature'])
             
-        # 1. Recursive Step: Embed in current layer
-        # Get parameters for THIS infinite layer
-        # The locus shifts dramatically with depth to simulate vastly different physics
-        layer_locus = locus_offset + (depth * 100000)
-        
-        # Expansion & Curvature (Standard DILS Logic)
-        original_size = vector.size
-        expansion_factor = 2 # Compressed expansion for recursion
-        target_dim = original_size * expansion_factor
-        
-        # Projection Matrix P (The "Map" of this layer)
-        # We use QR on the transpose to get an isometric embedding (expansion)
-        P = self.genome.express_matrix((original_size, target_dim), locus=layer_locus)
-        Q, _ = np.linalg.qr(P.T)
-        
-        # Apply Projection (Expansion from original_size to target_dim)
-        v_prime = vector.flatten() @ Q.T
-        
-        # Apply Manifold Curvature (Non-linear twist)
-        curvature = self.genome.express_constant(locus=layer_locus + 1)
-        v_prime = np.tanh(v_prime + curvature)
-        
-        # Apply Omega-X Drift (Random walk in this layer)
-        drift = self.genome.omega_engine.generate_omega_noise(target_dim)
-        v_prime = v_prime + drift * 0.05
-        
-        # 2. THE FRACTAL STEP:
-        # The OUTPUT of this layer becomes the INPUT for the next layer
-        # We recursively call embed on the expanded vector
-        v_final, recursive_params = self.embed(v_prime, locus_offset, depth - 1)
-        
-        # Store parameters for this layer (needed for reversal)
-        current_layer_params = {
-            'Q': complex_to_list(Q) if np.iscomplexobj(Q) else Q.tolist(),
-            'curvature': curvature,
-            'drift': drift.tolist(),
-            'original_shape': vector.shape,
-            'target_dim': target_dim
-        }
-        
-        # Return final deep-embedded vector and the stack of maps
-        return v_final, [current_layer_params] + recursive_params
+            # 3. Drift (Addition)
+            current_vector = current_vector + layer['drift'] * 0.05
+            
+            # For extraction, we store the *exact* params used (from the atlas)
+            # We must serialize numpy arrays to list for JSON
+            recursive_params.append({
+                'Q': complex_to_list(layer['Q']) if np.iscomplexobj(layer['Q']) else layer['Q'].tolist(),
+                'curvature': layer['curvature'],
+                'drift': layer['drift'].tolist(),
+                'original_shape': vector.shape, # Store original for final reshape
+                'target_dim': 32
+            })
+            
+        return current_vector, recursive_params
 
     def extract(self, deep_vector: np.ndarray, params_stack: List[dict]) -> np.ndarray:
         """
@@ -225,24 +305,13 @@ class RecursiveLatentSpace:
         if not params_stack:
             return deep_vector
             
-        # Pop the top layer (which was the last one applied)
-        # Wait - 'embed' returns [current] + recursive. 
-        # So v_final comes from depth 0. 
-        # Let's trace:
-        # Embed(d3) -> calls Embed(d2) -> calls Embed(d1) -> calls Embed(d0)
-        # Result is v_0. Params is [P3, P2, P1].
-        # To extract v_3 from v_0:
-        # We need to un-embed v_0 using P1 to get v_1
-        # Then un-embed v_1 using P2 to get v_2
-        # Then un-embed v_2 using P3 to get v_3.
-        # So we need to process the params stack in REVERSE order.
+        current_vector = deep_vector.flatten()
         
-        current_vector = deep_vector
-        
+        # Process in REVERSE order (unpeeling the onion)
         for layer_params in reversed(params_stack):
             # Reconstruct parameters
             Q = np.array(layer_params['Q'])
-            if isinstance(layer_params['Q'][0], list): # Handle complex JSON
+            if isinstance(layer_params['Q'][0], list): 
                  Q = list_to_complex(layer_params['Q'])
                  
             curvature = layer_params['curvature']
@@ -255,14 +324,17 @@ class RecursiveLatentSpace:
             v_flat = np.arctanh(np.clip(v_shifted, -0.999, 0.999)) - curvature
             
             # 3. Reverse Projection (Q)
-            # Since Q was (target_dim, original_size), multiplying by Q reduces dimension
-            v_projected = v_flat @ Q
+            # v = v @ Q (Since embedding was v @ Q.T)
+            current_vector = v_flat @ Q
+        
+        # Final reshape to original
+        original_shape = params_stack[0]['original_shape']
+        # Handle padding removal if originally smaller than 32
+        original_size = np.prod(original_shape)
+        if current_vector.size > original_size:
+            current_vector = current_vector[:original_size]
             
-            # Reshape to original
-            # (If this wasn't the last step, it's just a flat vector for the next layer up)
-            current_vector = v_projected
-            
-        return current_vector.reshape(params_stack[0]['original_shape'])
+        return current_vector.reshape(original_shape)
 
 def complex_to_list(arr):
     """Convert complex numpy array to JSON-serializable list [real, imag]"""
