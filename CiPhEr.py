@@ -257,7 +257,7 @@ class RecursiveLatentSpace:
 
     def embed(self, vector: np.ndarray, locus_offset: int, depth: int = None) -> Tuple[np.ndarray, List[dict]]:
         """
-        O(1) Holographic Embedding using Lazy Atlas.
+        O(1) Holographic Embedding using Lazy Atlas (Corrected Indentation).
         """
         byte_val = (locus_offset // 100) % 256
         layer_stack = self._get_layer_stack(byte_val)
@@ -269,26 +269,29 @@ class RecursiveLatentSpace:
              current_vector = current_vector[:32]
              
         recursive_params = []
+        # Process through the precomputed 10-layer depth stack
         for layer in layer_stack:
-                # v @ Q.T
-                sub_stack = sub_stack @ layer['Q'].T
-                
-                # Asymmetric Twist with P-adic Torsion
-                v_s = sub_stack + layer['curvature']
-                
-                # SPEED FIX: Use the O(1) Precomputed p_norm from the Atlas!
-                p_norm = layer['p_norm'] 
-                
-                sub_stack = np.sinh(v_s) / (np.cosh(v_s) + 0.1 + p_norm)
-                
-                # Drift
-                sub_stack = sub_stack + layer['drift'] * 0.05
+            # 1. Expansion via Unitary Q-Matrix
+            current_vector = current_vector @ layer['Q'].T
             
-            # Serialize for output ONLY when called, not during precompute
+            # 2. Asymmetric Twist with P-adic Torsion (Stage 1 & 6)
+            v_shifted = current_vector + layer['curvature']
+            
+            # SPEED FIX: Direct retrieval of precomputed norm
+            p_norm = layer['p_norm'] 
+            
+            # Apply the non-linear hyperbolic torsion
+            current_vector = np.sinh(v_shifted) / (np.cosh(v_shifted) + 0.1 + p_norm)
+            
+            # 3. Drift (The Omega-X Chaos injection)
+            current_vector = current_vector + layer['drift'] * 0.05
+            
+            # 4. Serialize metadata for output reconstruction
             recursive_params.append({
                 'Q': complex_to_list(layer['Q']) if np.iscomplexobj(layer['Q']) else layer['Q'].tolist(),
                 'curvature': layer['curvature'],
                 'drift': layer['drift'].tolist(),
+                'p_norm': p_norm, # Preserving norm for decryption
                 'target_dim': 32,
                 'original_shape': vector.shape
             })
