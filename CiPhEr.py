@@ -1848,7 +1848,7 @@ def main():
                     # --- DEPTH CERTIFICATE & BENCHMARKS ---
                     bench_cols = st.columns(3)
                     with bench_cols[0]:
-                        st.markdown(f"""
+                        st.markdown(fr"""
                             <div class="metric-card" style="border-color: #ff0088;">
                                 <p style='color: #ff0088; font-size: 0.9rem; margin: 0;'>🛡️ DEPTH CERTIFICATE</p>
                                 <p style='color: white; font-size: 1.5rem; font-weight: bold; margin: 0;'>D = {ciphertext.get('depth_certificate', 10)}</p>
