@@ -303,7 +303,7 @@ class RecursiveLatentSpace:
         else:
             final_stack = vector_stack[:, :32].copy() # Copy to avoid stride issues
             
-        byte_vals = (locus_offsets // 100) % 256
+        byte_vals = ((locus_offsets // 100) % 256).astype(int)
         
         # Pre-allocate result container for params
         # We can't easily vectorize the list-of-dicts creation in numpy, 
@@ -561,7 +561,7 @@ class TopologicalNeuralCipher:
         
         # Fast one-hot initialization
         rows = np.arange(n_bytes)
-        cols = data_array % d_sq
+        cols = (data_array % d_sq).astype(int)
         state_batch[rows, cols] = 1.0
             
         # Apply pre-baked Unitary transforms in parallel (Byte-Grouped)
@@ -629,11 +629,7 @@ class TopologicalNeuralCipher:
                 # Re-generate from atlas based on the decoded state sequence
                 # Note: In a slim payload, we reconstruct the param sequence
                 # For this optimized batch flow, we use the atlas page associated with 
-                # the target byte.
-                # However, the latent space extraction needs the original shape.
-                # We fetch from the atlas.
-                byte_val_guess = int(np.frombuffer(base64.b64decode(s['latent_projection'][0]), dtype=np.float64)[0]) % 256 # Dummy trick or store index
-                # Better: In a slim stream, we simply pass through the extraction logic 
+                # In a slim stream, we simply pass through the extraction logic 
                 # that knows the key.
                 # For this demo, we'll ensure extraction uses the atlas.
                 params_matrix.append(self.latent_space.manifold_atlas[0]) # Simplified for demo link
@@ -782,7 +778,7 @@ class GravitationalAIScrambler:
         scrambled_batch = basis_batch @ U_scramble.T
         
         # --- BATCH FRACTAL RECURSIVE LATENT SPACE INJECTION ---
-        locus_offsets = 6000 + data_array.astype(int)
+        locus_offsets = (6000 + data_array.astype(int)).astype(int)
         latent_batch, all_params = self.latent_space.embed_batch(scrambled_batch, locus_offsets)
         
         lyapunov = self._compute_lyapunov_exponent(adjusted_time)
