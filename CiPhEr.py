@@ -550,7 +550,8 @@ class TopologicalNeuralCipher:
         # 1. Express the organism
         self._express_organism(key)
         
-        data_array = np.frombuffer(plaintext, dtype=np.uint8)
+        # Convert to int to avoid 'uint8' bounds errors during math (e.g. % 256)
+        data_array = np.frombuffer(plaintext, dtype=np.uint8).astype(int)
         n_bytes = len(data_array)
         d_sq = self.dimension * self.dimension
         
@@ -652,7 +653,7 @@ class TopologicalNeuralCipher:
             
             # Decode byte
             probabilities = np.abs(state) ** 2
-            byte_val = np.argmax(probabilities)
+            byte_val = int(np.argmax(probabilities)) % 256
             decrypted_bytes.append(byte_val)
             
         return bytes(decrypted_bytes)
@@ -753,7 +754,8 @@ class GravitationalAIScrambler:
         # Key determines scrambling time base
         scrambling_time = abs(self.genome.express_constant(locus=6000)) * 10
         
-        data_array = np.frombuffer(plaintext, dtype=np.uint8)
+        # Convert to int to avoid 'uint8' bounds errors during math
+        data_array = np.frombuffer(plaintext, dtype=np.uint8).astype(int)
         dim = 2 ** (self.N // 2)
         n_bytes = len(data_array)
 
@@ -826,8 +828,8 @@ class GravitationalAIScrambler:
             U_unscramble = expm(1j * self.hamiltonian * scrambling_time)
             unscrambled = U_unscramble @ state
             
-            byte_val = np.argmax(np.abs(unscrambled))
-            decrypted_bytes.append(int(byte_val) % 256)
+            byte_val = int(np.argmax(np.abs(unscrambled))) % 256
+            decrypted_bytes.append(byte_val)
         
         return bytes(decrypted_bytes)
 
@@ -1136,7 +1138,8 @@ class ConsciousQuantumCipher:
         # 1. Express the organism
         self._express_organism(key)
         
-        data_array = np.frombuffer(plaintext, dtype=np.uint8)
+        # Convert to int to avoid 'uint8' bounds errors
+        data_array = np.frombuffer(plaintext, dtype=np.uint8).astype(int)
         
         # Initialize quantum state in microtubules
         quantum_state = self.tubulin_states.copy()
@@ -1311,7 +1314,8 @@ class LanglandsDeepCipher:
     
     def _create_automorphic_form(self, data: bytes) -> np.ndarray:
         """Create automorphic form (L-function) with Omega-X distortion"""
-        coefficients = np.frombuffer(data, dtype=np.uint8)
+        # Convert to int to avoid 'uint8' bounds errors
+        coefficients = np.frombuffer(data, dtype=np.uint8).astype(int)
         s_values = np.linspace(0.5 + 0j, 0.5 + 10j, len(coefficients))
         
         if len(coefficients) == 0:
@@ -1333,7 +1337,8 @@ class LanglandsDeepCipher:
         """Map data to Galois representation"""
         n = 4 
         rho = np.zeros((n, n), dtype=complex)
-        data_array = np.frombuffer(data, dtype=np.uint8)
+        # Convert to int for safety
+        data_array = np.frombuffer(data, dtype=np.uint8).astype(int)
         
         for i in range(min(n, len(data_array))):
             for j in range(min(n, len(data_array))):
@@ -1366,7 +1371,8 @@ class LanglandsDeepCipher:
         self._express_organism(key)
         
         # Process bytes 
-        data_array = np.frombuffer(plaintext, dtype=np.uint8)
+        # Convert to int for safely handling prime modulos > 255
+        data_array = np.frombuffer(plaintext, dtype=np.uint8).astype(int)
         representations = []
         l_functions = []
         
@@ -1421,7 +1427,7 @@ class LanglandsDeepCipher:
             
             # Extract val from first element of diagonal
             # Note: In full version, we'd invert the GNN. Here we read the preserved core.
-            val = int(rep[0, 0].real) % 256
+            val = int(rep[0, 0].real + 0.5) % 256
             decrypted_bytes.append(val)
         
         return bytes(decrypted_bytes)
@@ -1963,7 +1969,7 @@ def main():
                                 st.caption("Singularity Status: Stable (Lossless Reconstruction)")
                 
                 st.success("✅ Decrypted successfully!")
-                st.text_area("📝 Plaintext", plaintext.decode('utf-8'), height=100)
+                st.text_area("📝 Plaintext", plaintext.decode('utf-8', errors='replace'), height=100)
                 
             except Exception as e:
                 st.info("Possible causes: Wrong key, corrupted data, or algorithm mismatch")
