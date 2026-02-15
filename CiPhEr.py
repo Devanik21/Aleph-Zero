@@ -175,11 +175,7 @@ class RecursiveLatentSpace:
     Security: An attacker must solve a non-linear chain of geometries.
     Error propagation is exponential: E_total = E_0 ^ E_1 ^ ... ^ E_D
     """
-    def __init__(self, genome_expander):
-        self.genome = genome_expander
-        # Depth is derived from the Ackermann function approximation of the key
-        # Capped at 3 for demo performance (Real limit: Universe heat death)
-        self.max_depth = 3 # 300000000000000000000000000000000000000000.......♾️
+
         
     def __init__(self, genome_expander):
         self.genome = genome_expander
@@ -724,7 +720,7 @@ class GravitationalAIScrambler:
         return np.argmax(self.rl_policy['q_table'][state_hash])
     
     def encrypt(self, plaintext: bytes, key: bytes) -> dict:
-        """Gravitational scrambling with Genomic Expression"""
+        """Gravitational scrambling with Vectorized Geometry"""
         start_time = time.time()
         
         # 1. Express the organism
@@ -735,7 +731,8 @@ class GravitationalAIScrambler:
         
         data_array = np.frombuffer(plaintext, dtype=np.uint8)
         dim = 2 ** (self.N // 2)
-        
+        n_bytes = len(data_array)
+
         # RL selects strategy using expressed brain
         sample_state = np.zeros(dim, dtype=complex)
         sample_state[int(data_array[0]) % dim] = 1.0
@@ -746,26 +743,41 @@ class GravitationalAIScrambler:
         adjusted_time = scrambling_time * (1 + action * 0.1)
         U_scramble = expm(-1j * self.hamiltonian * adjusted_time)
         
-        scrambled_states = []
-        for byte in data_array:
-            init_state = np.zeros(dim, dtype=complex)
-            init_state[int(byte) % dim] = 1.0
-            scrambled_states.append(U_scramble @ init_state)
-            
-            # --- FRACTAL RECURSIVE LATENT SPACE INJECTION ---
-            l_vec, params_stack = self.latent_space.embed(scrambled_states[-1], locus_offset=6000+int(byte))
+        # Batch Scrambling
+        # Create batch of basis states
+        basis_batch = np.zeros((n_bytes, dim), dtype=complex)
+        for i, byte in enumerate(data_array):
+             basis_batch[i, int(byte) % dim] = 1.0
+             
+        # Apply U_scramble to all. 
+        # Since U is (dim, dim) and batch is (N, dim), we do batch @ U.T
+        scrambled_batch = basis_batch @ U_scramble.T
+        
+        # --- BATCH FRACTAL RECURSIVE LATENT SPACE INJECTION ---
+        locus_offsets = 6000 + data_array.astype(int)
+        latent_batch, all_params = self.latent_space.embed_batch(scrambled_batch, locus_offsets)
         
         lyapunov = self._compute_lyapunov_exponent(adjusted_time)
         
+        # Formatted output
+        scrambled_states_out = []
+        for i in range(n_bytes):
+            scrambled_states_out.append({
+                'state': complex_to_list(scrambled_batch[i]), # Legacy
+                'latent_projection': complex_to_list(latent_batch[i]),
+                'recursive_params': all_params[i]
+            })
+
         return {
             'algorithm': 'GASS',
-            'scrambled_states': [complex_to_list(s) for s in scrambled_states],
+            'scrambled_states': scrambled_states_out,
             'scrambling_time': adjusted_time,
             'lyapunov_exponent': lyapunov,
             'rl_action': action,
             'original_length': len(plaintext),
             'dimension': dim,
-            'encryption_time': time.time() - start_time
+            'encryption_time': time.time() - start_time,
+            'depth_certificate': self.latent_space.max_depth
         }
     
     def decrypt(self, ciphertext: dict, key: bytes) -> bytes:
