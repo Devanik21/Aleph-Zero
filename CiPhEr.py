@@ -400,6 +400,7 @@ class TopologicalNeuralCipher:
         self.neural_weights = self._synthesize_neural_network()
         
         self.braid_bank = {} 
+        self.current_key = key # CACHE VALIDATION
 
     def _get_braid_data(self, byte_val: int):
         """Lazy braid computation"""
