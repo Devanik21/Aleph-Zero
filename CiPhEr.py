@@ -160,7 +160,7 @@ class RecursiveLatentSpace:
         self.genome = genome_expander
         # Depth is derived from the Ackermann function approximation of the key
         # Capped at 3 for demo performance (Real limit: Universe heat death)
-        self.max_depth = 3 # 300000000000000000000000000000000000000000.......♾️
+        self.max_depth = 1 # 300000000000000000000000000000000000000000.......♾️
         
     def embed(self, vector: np.ndarray, locus_offset: int, depth: int = None) -> Tuple[np.ndarray, List[dict]]:
         """
