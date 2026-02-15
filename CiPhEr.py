@@ -129,7 +129,7 @@ class GenomicExpander:
         self.genome = hashlib.sha3_512(key).digest() * 64 # 4KB of genetic material
         self.omega_engine = OmegaX_Engine(key)
         
-    @lru_cache(maxsize=4096)
+    @lru_cache(maxsize=1024)
     def express_matrix(self, shape: Tuple[int, ...], locus: int) -> np.ndarray:
         """
         Express a random matrix from a specific genomic locus.
@@ -185,67 +185,119 @@ class RecursiveLatentSpace:
         self.max_depth = 6 
         
         # --- HOLOGRAPHIC STREAM ARCHITECTURE ---
-        # Lazy Atlas: Only compute physics for bytes we actually use.
-        # This makes the "Real World" speed instantaneous for most messages.
-        self.manifold_atlas = {} 
-        self.max_depth = 6
+        # Pre-compute the "Physics" of the Universe to avoid re-calculating 
+        # the laws of nature for every atom (byte) of data.
+        self.manifold_atlas = {} # Maps byte_locus -> (Collapsed Matrix, [Params])
+        self._precompute_manifold_atlas()
         
-    def _get_layer_stack(self, byte_val: int):
-        """Lazy retrieval/computation of manifold layers"""
-        byte_val = int(byte_val) % 256
-        if byte_val in self.manifold_atlas:
-            return self.manifold_atlas[byte_val]
+    def _precompute_manifold_atlas(self):
+        """
+        Generates the 'Geometry Atlas' for all possible 256 byte states.
+        Collapses 5 layers of recursive projection into a single optimized tensor.
+        Complexity: O(256 * Depth) [One-time Init]
+        Runtime: O(1) [Per-Byte Encryption]
+        """
+        # We pre-calculate the manifold path for every byte value (0-255)
+        # because the 'locus' is deterministic based on the byte value.
+        for byte_val in range(256):
+            locus_base = int(byte_val) * 100
             
-        locus_base = byte_val * 100
-        layer_stack = []
-        current_locus = locus_base
-        
-        for d in range(self.max_depth, 0, -1):
-            layer_locus = current_locus + (d * 100000)
+            # Simulate the recursive dive to get the pure geometric transformation
+            # We use a dummy identity vector to trace the path
+            # effectively calculating the product of all projection matrices
+            # P_total = P_1 * P_2 * ... * P_5
             
-            # Expansion parameters (32x32 fixed holographic width)
-            P = self.genome.express_matrix((32, 32), locus=layer_locus)
-            Q, _ = np.linalg.qr(P.T)
-            curvature = self.genome.express_constant(locus=layer_locus + 1)
-            drift = self.genome.omega_engine.generate_omega_noise(32)
+            # Note: For strict correctness with non-linearities (Tanh), we cannot
+            # simply multiply matrices. We must cache the *sequence* of layers.
+            # But we can optimize the storage and generation.
             
-            layer_stack.append({
-                'Q': Q,
-                'curvature': curvature,
-                'drift': drift,
-                'locus': layer_locus
-            })
+            layer_stack = []
+            current_locus = locus_base
             
-        self.manifold_atlas[byte_val] = layer_stack
-        return layer_stack
+            for d in range(self.max_depth, 0, -1):
+                layer_locus = current_locus + (d * 100000)
+                
+                # Expansion parameters
+                # We fix dimensions for the holographic stream to ensure compatibility
+                # Input Dim -> Target Dim
+                # Depth 5: 16 -> 32
+                # Depth 4: 32 -> 64
+                # ...
+                # For this optimized version, we use a fixed expansion path:
+                # 16 -> 32 -> 32 -> 32 -> 32 -> 32 (Clamped)
+                
+                # 1. Geometry (The Map)
+                # We generate the matrix ONCE here
+                P = self.genome.express_matrix((32, 32), locus=layer_locus)
+                Q, _ = np.linalg.qr(P.T)
+                
+                # 2. Curvature (The Twist)
+                curvature = self.genome.express_constant(locus=layer_locus + 1)
+                
+                # 3. Drift (The Chaos)
+                drift = self.genome.omega_engine.generate_omega_noise(32)
+                
+                # Pre-calc JSON for speed
+                json_params = {
+                    'Q': complex_to_list(Q) if np.iscomplexobj(Q) else Q.tolist(),
+                    'curvature': curvature,
+                    'drift': drift.tolist(),
+                    # original_shape is dynamic
+                    'target_dim': 32
+                }
+                
+                layer_stack.append({
+                    'Q': Q,
+                    'curvature': curvature,
+                    'drift': drift,
+                    'locus': layer_locus,
+                    'json_params': json_params
+                })
+            
+            self.manifold_atlas[byte_val] = layer_stack
 
     def embed(self, vector: np.ndarray, locus_offset: int, depth: int = None) -> Tuple[np.ndarray, List[dict]]:
         """
-        O(1) Holographic Embedding using Lazy Atlas.
+        O(1) Holographic Embedding using the Pre-Computed Atlas.
         """
+        # Determine which "Universe" (Atlas Page) we are in based on locus
+        # Locus offset is passed as (byte_val * 100) usually
         byte_val = (locus_offset // 100) % 256
-        layer_stack = self._get_layer_stack(byte_val)
         
+        # Retrieve the pre-calculated laws of physics for this byte
+        if byte_val in self.manifold_atlas:
+            layer_stack = self.manifold_atlas[byte_val]
+        else:
+             # Fallback (Should not happen with standard calls)
+             return vector, []
+
         current_vector = vector.flatten()
+        # Resize to 32 (Standard Stream Width) if needed
         if current_vector.size < 32:
             current_vector = np.pad(current_vector, (0, 32 - current_vector.size), 'constant')
         elif current_vector.size > 32:
              current_vector = current_vector[:32]
              
         recursive_params = []
+        
+        # Fast Forward through the layers
         for layer in layer_stack:
+            # 1. Expansion (Matrix Mult)
+            # vector = vector @ Q.T
             current_vector = current_vector @ layer['Q'].T
+            
+            # 2. Curvature (Tanh)
             current_vector = np.tanh(current_vector + layer['curvature'])
+            
+            # 3. Drift (Addition)
             current_vector = current_vector + layer['drift'] * 0.05
             
-            # Serialize for output ONLY when called, not during precompute
-            recursive_params.append({
-                'Q': complex_to_list(layer['Q']) if np.iscomplexobj(layer['Q']) else layer['Q'].tolist(),
-                'curvature': layer['curvature'],
-                'drift': layer['drift'].tolist(),
-                'target_dim': 32,
-                'original_shape': vector.shape
-            })
+            # USE PRE-CACHED PARAMS FOR ZERO-COPY SPEED
+            # We append the params that were pre-serialized in the atlas
+            # We only need to inject the original_shape dynamically
+            layer_param_copy = layer['json_params'].copy()
+            layer_param_copy['original_shape'] = vector.shape
+            recursive_params.append(layer_param_copy)
             
         return current_vector, recursive_params
 
@@ -277,28 +329,40 @@ class RecursiveLatentSpace:
         unique_bytes, indices = np.unique(byte_vals, return_inverse=True)
         
         for u_byte in unique_bytes:
+            # Mask for current byte
             mask = (byte_vals == u_byte)
-            layer_stack = self._get_layer_stack(u_byte)
+            
+            # Get pre-computed physics
+            layer_stack = self.manifold_atlas[u_byte]
+            
+            # Get subset of vectors
             sub_stack = final_stack[mask]
             
+            # Apply 5 layers of Manifold Projection (Vectorized over sub_stack)
             for layer in layer_stack:
+                # 1. Expansion: v @ Q.T
                 sub_stack = sub_stack @ layer['Q'].T
+                
+                # 2. Curvature
                 sub_stack = np.tanh(sub_stack + layer['curvature'])
+                
+                # 3. Drift (Broadcasting)
                 sub_stack = sub_stack + layer['drift'] * 0.05
                 
+            # Update final stack in place
             final_stack[mask] = sub_stack
             
-            # Build params for output (Only for unique bytes in the message)
+            # Assign params efficiently (Reference copy)
+            # We construct the params list ONCE for this byte
             byte_params = []
             for layer in layer_stack:
-                byte_params.append({
-                    'Q': complex_to_list(layer['Q']) if np.iscomplexobj(layer['Q']) else layer['Q'].tolist(),
-                    'curvature': layer['curvature'],
-                    'drift': layer['drift'].tolist(),
-                    'target_dim': 32,
-                    'original_shape': (dim,)
-                })
+                p = layer['json_params'].copy()
+                p['original_shape'] = (dim,)
+                byte_params.append(p)
             
+            # Broadcast params to all matching indices
+            # List comprehension with mask is still Python speed, but better than dict creation
+            # Optimization: We assign to the list indices involved
             for idx in np.where(mask)[0]:
                 all_recursive_params[idx] = byte_params
             
@@ -399,31 +463,34 @@ class TopologicalNeuralCipher:
         self.braid_generators = self._synthesize_braid_generators()
         self.neural_weights = self._synthesize_neural_network()
         
-        self.braid_bank = {} 
-        self.current_key = key # CACHE VALIDATION
-
-    def _get_braid_data(self, byte_val: int):
-        """Lazy braid computation"""
-        byte_val = int(byte_val) % 256
-        if byte_val in self.braid_bank:
-            return self.braid_bank[byte_val]
-            
-        d_sq = self.dimension * self.dimension
-        # 1. Neural Prediction
-        temp_state = np.zeros(d_sq, dtype=complex)
-        temp_state[byte_val % d_sq] = 1.0
-        neural_probs = self._neural_forward(temp_state.reshape(self.dimension, self.dimension))
-        braid_sequence = np.random.choice(len(self.braid_generators), size=5, p=neural_probs)
+        # --- ZERO-LAG OPTIMIZATION ---
+        # Pre-bake the braids for all possible bytes
+        self.braid_bank = {} # Maps byte_val -> (Final Unitary U, Braid Sequence)
+        self._precompute_braid_bank()
         
-        # 2. Sequential Braid Application (Direct Product)
-        U_total = np.eye(d_sq, dtype=complex)
-        for braid_idx in braid_sequence:
-            gen = self.braid_generators[braid_idx]
-            U_total = gen.reshape(d_sq, d_sq) @ U_total
+        self.current_key = key # Update cache
+
+    def _precompute_braid_bank(self):
+        """
+        Pre-calculates the topological braids for all 256 byte states.
+        This collapses the Neural Prediction + Unitary Exponentials into a bank.
+        """
+        d_sq = self.dimension * self.dimension
+        for byte_val in range(256):
+            # 1. Neural Prediction
+            temp_state = np.zeros(d_sq, dtype=complex)
+            temp_state[int(byte_val) % d_sq] = 1.0
+            neural_probs = self._neural_forward(temp_state.reshape(self.dimension, self.dimension))
+            braid_sequence = np.random.choice(len(self.braid_generators), size=5, p=neural_probs)
             
-        res = (U_total, braid_sequence.tolist())
-        self.braid_bank[byte_val] = res
-        return res
+            # 2. Sequential Braid Application (Direct Product)
+            U_total = np.eye(d_sq, dtype=complex)
+            for braid_idx in braid_sequence:
+                gen = self.braid_generators[braid_idx]
+                # SPEED FIX: Direct application of Unitary R-matrix (O(1)) instead of heavy expm
+                U_total = gen.reshape(d_sq, d_sq) @ U_total
+                
+            self.braid_bank[byte_val] = (U_total, braid_sequence.tolist())
         
     def _synthesize_braid_generators(self) -> List[np.ndarray]:
         """Synthesize Yang-Baxter R-matrices from Genome"""
@@ -521,12 +588,25 @@ class TopologicalNeuralCipher:
         
         for u_byte in unique_bytes:
             mask = (data_array == u_byte)
-            U, braid_seq = self._get_braid_data(u_byte)
+            U, braid_seq = self.braid_bank[int(u_byte) % 256]
             
+            # Apply U to the subset
+            # (SubBatch, d_sq) @ U.T (Since U is unitary, U^-1 = U.dag, but here we forward transform)
+            # Standard: v_new = U @ v. 
+            # Vectorized: V_new = V @ U.T
             state_batch[mask] = state_batch[mask] @ U.T
-            sample_entropy = self._compute_topological_entropy(state_batch[np.where(mask)[0][0]])
-            info = {'braid_seq': braid_seq, 'entropy': sample_entropy}
             
+            # Cache metadata (Reference copy)
+            # Entropy is identical for identical start state & identical unitary
+            # So compute ONCE
+            sample_entropy = self._compute_topological_entropy(state_batch[np.where(mask)[0][0]])
+            
+            info = {
+                'braid_seq': braid_seq,
+                'entropy': sample_entropy
+            }
+            
+            # Assign to all
             for idx in np.where(mask)[0]:
                 encrypted_states_info[idx] = info
             
@@ -1744,17 +1824,14 @@ def main():
         **Mathematical Foundation**: {algo_info['basis']}
         """)
     
-    @st.cache_resource
-    def get_ciphers():
-        return {
-            "TNHC": TopologicalNeuralCipher(dimension=8),
-            "GASS": GravitationalAIScrambler(num_sites=12),
-            "DNC": DNANeuralCipher(sequence_length=64),
-            "CQE": ConsciousQuantumCipher(microtubule_size=13),
-            "LDLC": LanglandsDeepCipher(prime=251)
-        }
-    
-    ciphers = get_ciphers()
+    # Initialize cipher
+    ciphers = {
+        "TNHC": TopologicalNeuralCipher(dimension=8),
+        "GASS": GravitationalAIScrambler(num_sites=12),
+        "DNC": DNANeuralCipher(sequence_length=64),
+        "CQE": ConsciousQuantumCipher(microtubule_size=13),
+        "LDLC": LanglandsDeepCipher(prime=251)
+    }
     
     cipher = ciphers[algo_info["name"]]
     
@@ -1775,11 +1852,8 @@ def main():
         if encrypt_btn and plaintext and key:
             with st.spinner(f"Applying {algo_info['name']} encryption..."):
                 try:
-                    payload_bytes = plaintext.encode('utf-8')
-                    n_bytes = len(payload_bytes)
-                    
                     ciphertext = cipher.encrypt(
-                        payload_bytes,
+                        plaintext.encode('utf-8'),
                         key.encode('utf-8')
                     )
                     
