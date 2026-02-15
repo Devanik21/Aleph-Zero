@@ -434,6 +434,7 @@ class TopologicalNeuralCipher:
         self.dimension = dimension
         self.neural_layers = neural_layers
         self.current_key = None 
+        self.braid_bank = {} 
         # Components are now 'expressed' dynamically from key in encrypt/decrypt
         
     def _express_organism(self, key: bytes):
@@ -447,6 +448,8 @@ class TopologicalNeuralCipher:
         self.braid_generators = self._synthesize_braid_generators()
         self.neural_weights = self._synthesize_neural_network()
         self.current_key = key
+        
+    def _get_braid_data(self, byte_val: int):
         """Lazy braid computation"""
         byte_val = int(byte_val) % 256
         if byte_val in self.braid_bank:
