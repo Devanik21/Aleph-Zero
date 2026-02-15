@@ -1822,16 +1822,36 @@ def main():
                     # --- PAYLOAD SLIMMING (Remove Redundant Geometry) ---
                     # To stop the 50s lag, we don't send the entire manifold geometry.
                     # The receiver re-generates it using the KEY.
+                    
+                    # Unified extraction of states
+                    states_safe = ciphertext.get('encrypted_states', [])
+                    if not states_safe and 'scrambled_states' in ciphertext: # Fallback GASS legacy
+                        states_safe = ciphertext['scrambled_states']
+                    if not states_safe and 'representations' in ciphertext: # Fallback LDLC legacy 
+                        states_safe = ciphertext['representations']
+                    if not states_safe and 'encrypted_data' in ciphertext: # Fallback DNC legacy
+                        states_safe = ciphertext['encrypted_data']
+
+                    slim_states = []
+                    for s in states_safe:
+                        # Extract only what is needed (Latent Projection + Metadata)
+                        slim_s = {}
+                        if 'latent_projection' in s:
+                           slim_s['latent_projection'] = s['latent_projection']
+                        if 'braid_seq' in s: # TNHC
+                           slim_s['braid_seq'] = s['braid_seq']
+                        if 'entropy' in s: # TNHC
+                           slim_s['entropy'] = s['entropy']
+                        if 'microtubule_state' in s: # CQE
+                           slim_s['microtubule_state'] = s['microtubule_state']
+                        if 'dna_chunk' in s: # DNC
+                           slim_s['dna_chunk'] = s['dna_chunk']
+                        
+                        slim_states.append(slim_s)
+
                     slim_ciphertext = {
                         'algorithm': ciphertext['algorithm'],
-                        'encrypted_states': [
-                            {
-                                'latent_projection': s['latent_projection'],
-                                'braid_seq': s['braid_seq'],
-                                'entropy': s['entropy']
-                                # 'recursive_params' is EXCLUDED (Slashing 90% of file size)
-                            } for s in ciphertext['encrypted_states']
-                        ],
+                        'encrypted_states': slim_states,
                         'dimension': ciphertext.get('dimension'),
                         'encryption_time': ciphertext['encryption_time'],
                         'depth': ciphertext.get('depth_certificate', 5)
