@@ -551,7 +551,7 @@ class TopologicalNeuralCipher:
         self._express_organism(key)
         
         # Convert to int to avoid 'uint8' bounds errors during math (e.g. % 256)
-        data_array = np.frombuffer(plaintext, dtype=np.uint8).astype(int)
+        data_array = np.array(list(plaintext), dtype=int)
         n_bytes = len(data_array)
         d_sq = self.dimension * self.dimension
         
@@ -755,7 +755,7 @@ class GravitationalAIScrambler:
         scrambling_time = abs(self.genome.express_constant(locus=6000)) * 10
         
         # Convert to int to avoid 'uint8' bounds errors during math
-        data_array = np.frombuffer(plaintext, dtype=np.uint8).astype(int)
+        data_array = np.array(list(plaintext), dtype=int)
         dim = 2 ** (self.N // 2)
         n_bytes = len(data_array)
 
@@ -1139,7 +1139,7 @@ class ConsciousQuantumCipher:
         self._express_organism(key)
         
         # Convert to int to avoid 'uint8' bounds errors
-        data_array = np.frombuffer(plaintext, dtype=np.uint8).astype(int)
+        data_array = np.array(list(plaintext), dtype=int)
         
         # Initialize quantum state in microtubules
         quantum_state = self.tubulin_states.copy()
@@ -1372,7 +1372,7 @@ class LanglandsDeepCipher:
         
         # Process bytes 
         # Convert to int for safely handling prime modulos > 255
-        data_array = np.frombuffer(plaintext, dtype=np.uint8).astype(int)
+        data_array = np.array(list(plaintext), dtype=int)
         representations = []
         l_functions = []
         
