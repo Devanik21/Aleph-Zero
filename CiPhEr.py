@@ -1852,8 +1852,11 @@ def main():
         if encrypt_btn and plaintext and key:
             with st.spinner(f"Applying {algo_info['name']} encryption..."):
                 try:
+                    payload_bytes = plaintext.encode('utf-8')
+                    n_bytes = len(payload_bytes)
+                    
                     ciphertext = cipher.encrypt(
-                        plaintext.encode('utf-8'),
+                        payload_bytes,
                         key.encode('utf-8')
                     )
                     
@@ -2084,4 +2087,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
